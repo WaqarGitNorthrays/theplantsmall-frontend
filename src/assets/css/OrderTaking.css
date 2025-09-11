@@ -1,0 +1,27 @@
+/* Force responsive handling on very small screens */
+@media (max-width: 375px) {
+  input,
+  button {
+    font-size: 14px !important;
+  }
+
+  .order-inputs {
+    flex-direction: column !important;
+  }
+
+  .order-inputs button {
+    width: 100% !important;
+    margin-top: 6px;
+  }
+}
+
+@media (max-width: 320px) {
+  input,
+  button {
+    font-size: 12px !important;
+  }
+
+  audio {
+    width: 100% !important;
+  }
+}

@@ -1,0 +1,187 @@
+// pages/RiderDashboard.jsx
+import React, { useState } from "react";
+import { useSelector } from "react-redux";
+import Layout from "../Layout/Layout";
+import OrderTaking from "./Order/OrderTaking";
+import ShopRegistration from "./ShopRegistration";
+import { Store, Plus, MapPin } from "lucide-react";
+import { useRealTimeUpdates } from "../../hooks/useRealTimeUpdates";
+
+const RiderDashboard = () => {
+  const [activeTab, setActiveTab] = useState("shops");
+  const [selectedShopId, setSelectedShopId] = useState(null);
+
+  // ✅ Logged-in user (salesman/rider)
+  const { user } = useSelector((state) => state.auth);
+  const salesmanId = user?.id || "salesman1"; // fallback for dev
+
+  // ✅ Real-time location + auto-fetch nearby shops
+  useRealTimeUpdates(salesmanId);
+
+  // ✅ Get shops + orders from Redux
+  const { nearbyShops, loading, error } = useSelector((state) => state.shops);
+  const orders = useSelector((state) => state.orders.orders);
+  const myOrders = orders.filter((order) => order.salesmanId === salesmanId);
+
+  return (
+    <Layout title="Rider Dashboard">
+      <div className="space-y-6">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Shops</p>
+                <p className="text-3xl font-bold text-green-600">
+                  {nearbyShops.length}
+                </p>
+              </div>
+              <Store className="h-12 w-12 text-green-500" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                <p className="text-3xl font-bold text-emerald-600">
+                  {myOrders.length}
+                </p>
+              </div>
+              <Store className="h-12 w-12 text-emerald-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Shops Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex border-b border-gray-100">
+            <button
+              className={`flex-1 flex items-center justify-center space-x-2 py-4 px-6 font-medium ${
+                activeTab === "shops"
+                  ? "text-green-600 border-b-2 border-green-500"
+                  : "text-gray-500"
+              }`}
+              onClick={() => {
+                setActiveTab("shops");
+                setSelectedShopId(null);
+              }}
+            >
+              <Store className="h-5 w-5" />
+              <span>My Shops</span>
+              <span
+                className={`px-2 py-1 text-xs rounded-full ${
+                  activeTab === "shops"
+                    ? "bg-green-100 text-green-600"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {nearbyShops.length}
+              </span>
+            </button>
+          </div>
+
+          <div className="p-2 md:p-8 lg:p-12">
+            {/* Shops Tab */}
+            {activeTab === "shops" && !selectedShopId && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Registered Shops
+                  </h3>
+                  <button
+                    onClick={() => setActiveTab("register")}
+                    className="flex items-center bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Register Shop
+                  </button>
+                </div>
+
+                {/* Loader */}
+                {loading && (
+                  <p className="text-center text-gray-500 py-6">
+                    Fetching nearby shops...
+                  </p>
+                )}
+
+                {/* Error */}
+                {error && (
+                  <p className="text-center text-red-500 py-6">{error}</p>
+                )}
+
+                {/* No Shops */}
+                {!loading && nearbyShops.length === 0 && !error && (
+                  <div className="text-center py-12">
+                    <Store className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No shops found nearby</p>
+                  </div>
+                )}
+
+                {/* Shops List */}
+                <div className="grid gap-4">
+                  {(nearbyShops || []).map((shop) => (
+                    <div
+                      key={shop.id}
+                      onClick={() => {
+                        setSelectedShopId(shop.id);
+                        setActiveTab("orderTaking");
+                      }}
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                    >
+                      <div className="flex items-start space-x-4">
+                        <img
+                          src={shop.shop_image}
+                          alt={shop.shop_name}
+                          className="w-16 h-16 rounded-lg object-cover"
+                        />
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">
+                            {shop.shop_name}
+                          </h4>
+                          <p className="text-sm text-gray-500">
+                            Owner: {shop.owner_name || "N/A"} (
+                            {shop.owner_phone || "—"})
+                          </p>
+                          <p className="text-xs text-gray-400 flex items-center mt-1">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {shop.shop_address}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-400">Distance</p>
+                          <p className="text-sm text-gray-600">
+                            {shop.distance?.toFixed(2)} km
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(shop.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* OrderTaking */}
+            {activeTab === "orderTaking" && selectedShopId && (
+              <OrderTaking
+                shopId={selectedShopId}
+                onBack={() => {
+                  setSelectedShopId(null);
+                  setActiveTab("shops");
+                }}
+              />
+            )}
+
+            {/* Shop Registration */}
+            {activeTab === "register" && <ShopRegistration />}
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default RiderDashboard;
