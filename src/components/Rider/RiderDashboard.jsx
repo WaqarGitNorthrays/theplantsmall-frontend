@@ -4,24 +4,36 @@ import { useSelector } from "react-redux";
 import Layout from "../Layout/Layout";
 import OrderTaking from "./Order/OrderTaking";
 import ShopRegistration from "./ShopRegistration";
-import { Store, Plus, MapPin } from "lucide-react";
+import { Store, Plus, MapPin, Edit } from "lucide-react";
 import { useRealTimeUpdates } from "../../hooks/useRealTimeUpdates";
 
 const RiderDashboard = () => {
   const [activeTab, setActiveTab] = useState("shops");
   const [selectedShopId, setSelectedShopId] = useState(null);
+  const [editingShop, setEditingShop] = useState(null);
 
-  // ✅ Logged-in user (salesman/rider)
   const { user } = useSelector((state) => state.auth);
-  const salesmanId = user?.id || "salesman1"; // fallback for dev
+  const salesmanId = user?.id || "salesman1";
 
-  // ✅ Real-time location + auto-fetch nearby shops
   useRealTimeUpdates(salesmanId);
 
-  // ✅ Get shops + orders from Redux
   const { nearbyShops, loading, error } = useSelector((state) => state.shops);
   const orders = useSelector((state) => state.orders.orders);
-  const myOrders = orders.filter((order) => order.salesmanId === salesmanId);
+
+  const myOrders = orders.filter((order) => {
+  if (String(order.order_taker) === String(salesmanId)) return true;
+  if (String(order.salesmanId) === String(salesmanId)) return true;
+  return false;
+});
+  const handleEditShop = (shop) => {
+    setEditingShop(shop);
+    setActiveTab("register");
+  };
+
+  const handleRegistrationSuccess = () => {
+    setEditingShop(null);
+    setActiveTab("shops");
+  };
 
   return (
     <Layout title="Rider Dashboard">
@@ -65,6 +77,7 @@ const RiderDashboard = () => {
               onClick={() => {
                 setActiveTab("shops");
                 setSelectedShopId(null);
+                setEditingShop(null);
               }}
             >
               <Store className="h-5 w-5" />
@@ -83,7 +96,7 @@ const RiderDashboard = () => {
 
           <div className="p-2 md:p-8 lg:p-12">
             {/* Shops Tab */}
-            {activeTab === "shops" && !selectedShopId && (
+            {activeTab === "shops" && !selectedShopId && !editingShop && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900">
@@ -98,19 +111,14 @@ const RiderDashboard = () => {
                   </button>
                 </div>
 
-                {/* Loader */}
                 {loading && (
                   <p className="text-center text-gray-500 py-6">
                     Fetching nearby shops...
                   </p>
                 )}
-
-                {/* Error */}
                 {error && (
                   <p className="text-center text-red-500 py-6">{error}</p>
                 )}
-
-                {/* No Shops */}
                 {!loading && nearbyShops.length === 0 && !error && (
                   <div className="text-center py-12">
                     <Store className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -123,11 +131,13 @@ const RiderDashboard = () => {
                   {(nearbyShops || []).map((shop) => (
                     <div
                       key={shop.id}
-                      onClick={() => {
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={(e) => {
+                        // prevent order-taking if user clicked edit
+                        if (e.target.closest("button")) return;
                         setSelectedShopId(shop.id);
                         setActiveTab("orderTaking");
                       }}
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
                     >
                       <div className="flex items-start space-x-4">
                         <img
@@ -136,30 +146,37 @@ const RiderDashboard = () => {
                           className="w-16 h-16 rounded-lg object-cover"
                         />
                         <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900">
-                            {shop.shop_name}
-                          </h4>
+                          <h4 className="font-semibold text-gray-900">{shop.shop_name}</h4>
                           <p className="text-sm text-gray-500">
-                            Owner: {shop.owner_name || "N/A"} (
-                            {shop.owner_phone || "—"})
+                            Owner: {shop.owner_name || "N/A"} ({shop.owner_phone || "—"})
                           </p>
                           <p className="text-xs text-gray-400 flex items-center mt-1">
                             <MapPin className="h-3 w-3 mr-1" />
                             {shop.shop_address}
                           </p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex flex-col items-end space-y-1">
                           <p className="text-xs text-gray-400">Distance</p>
                           <p className="text-sm text-gray-600">
                             {shop.distance?.toFixed(2)} km
                           </p>
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-gray-400">
                             {new Date(shop.created_at).toLocaleDateString()}
                           </p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // stop triggering parent click
+                              handleEditShop(shop);
+                            }}
+                            className="mt-2 flex items-center text-blue-600 text-xs hover:underline"
+                          >
+                            <Edit className="h-3 w-3 mr-1" /> Edit
+                          </button>
                         </div>
                       </div>
                     </div>
                   ))}
+
                 </div>
               </div>
             )}
@@ -176,7 +193,13 @@ const RiderDashboard = () => {
             )}
 
             {/* Shop Registration */}
-            {activeTab === "register" && <ShopRegistration />}
+            {activeTab === "register" && (
+              <ShopRegistration
+                shop={editingShop}
+                mode={editingShop ? "edit" : "create"}
+                onSuccess={handleRegistrationSuccess}
+              />
+            )}
           </div>
         </div>
       </div>

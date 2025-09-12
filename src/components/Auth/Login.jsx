@@ -1,14 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Leaf, User, Package, Settings } from "lucide-react";
+import { useDispatch } from "react-redux";
+import { useRealTimeUpdates } from "../../hooks/useRealTimeUpdates.js";
 
 const Login = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [selectedRole, setSelectedRole] = useState("");
+  const [enableGPS, setEnableGPS] = useState(false); // ✅ only track GPS if true
 
   const roles = [
     {
-      id: "salesman", // 🔑 updated from "rider" to "salesman"
+      id: "salesman",
       title: "Salesman",
       description: "Register shops and take orders",
       icon: User,
@@ -54,6 +58,15 @@ const Login = () => {
     },
   };
 
+  const handleRoleSelect = (roleId) => {
+    setSelectedRole(roleId);
+    if (roleId === "salesman") setEnableGPS(true); // ✅ start GPS tracking only for salesman
+    navigate(`/login/${roleId}`);
+  };
+
+  // ✅ only activate real-time updates if GPS is enabled
+  useRealTimeUpdates(enableGPS ? "salesman1" : null);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-lime-50 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full">
@@ -82,12 +95,9 @@ const Login = () => {
               <div
                 key={role.id}
                 className={`${colors.bg} ${colors.border} border-2 rounded-2xl p-8 cursor-pointer 
-                transition-all duration-300 transform hover:scale-105 hover:shadow-lg 
-                ${selectedRole === role.id ? "ring-4 ring-green-400" : ""}`}
-                onClick={() => {
-                  setSelectedRole(role.id);
-                  navigate(`/login/${role.id}`); // 🔑 updated to use role.id
-                }}
+                  transition-all duration-300 transform hover:scale-105 hover:shadow-lg 
+                  ${selectedRole === role.id ? "ring-4 ring-green-400" : ""}`}
+                onClick={() => handleRoleSelect(role.id)}
               >
                 <div className="text-center">
                   <div className={`inline-flex p-4 rounded-xl bg-white shadow-sm mb-6`}>
@@ -109,7 +119,9 @@ const Login = () => {
                   </ul>
 
                   <button
+                    type="button"
                     className={`w-full ${colors.bg} ${colors.text} font-semibold py-3 px-6 rounded-xl border-2 ${colors.border} hover:bg-white transition-colors`}
+                    onClick={() => handleRoleSelect(role.id)}
                   >
                     Continue as {role.title}
                   </button>

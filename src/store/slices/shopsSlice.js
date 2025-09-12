@@ -2,24 +2,19 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../utils/axiosInstance";
 
-// ✅ Helper for rounding
-const roundTo6 = (num) => parseFloat(num.toFixed(6));
-
+// ✅ Async thunk: Fetch nearby shops from API
 export const fetchNearbyShops = createAsyncThunk(
   "shops/fetchNearby",
   async ({ lat, lng }, { rejectWithValue }) => {
     try {
       const res = await api.get("/plants-mall-shops/api/shops/nearby/", {
-        params: {
-          lat: roundTo6(lat),
-          lng: roundTo6(lng),
-        },
+        params: { lat, lng },
       });
-
-      // ✅ Extract shops from results
-      return res.data?.results || [];
+      return res.data.results || []; // expected: array of shops
     } catch (err) {
-      return rejectWithValue(err.response?.data || "Failed to fetch nearby shops");
+      return rejectWithValue(
+        err.response?.data || "Failed to fetch nearby shops"
+      );
     }
   }
 );
@@ -27,24 +22,34 @@ export const fetchNearbyShops = createAsyncThunk(
 const shopsSlice = createSlice({
   name: "shops",
   initialState: {
-    shops: [],        // manually registered shops (local)
-    nearbyShops: [],  // fetched from API
+    shops: [], // ✅ shops manually registered by salesman
+    nearbyShops: [], // ✅ shops fetched from API based on location
     loading: false,
     error: null,
   },
   reducers: {
     addShop: (state, action) => {
+      const payload = action.payload;
       state.shops.push({
-        ...action.payload,
-        id: Date.now().toString(),
-        registeredAt: new Date().toISOString(),
+        ...payload,
+        // if API already gives an id, use it
+        id: payload.id || Date.now().toString(),
+        registeredAt: payload.registeredAt || new Date().toISOString(),
       });
     },
     updateShop: (state, action) => {
-      const index = state.shops.findIndex((shop) => shop.id === action.payload.id);
+      const index = state.shops.findIndex(
+        (shop) => shop.id === action.payload.id
+      );
       if (index !== -1) {
-        state.shops[index] = { ...state.shops[index], ...action.payload };
+        state.shops[index] = {
+          ...state.shops[index],
+          ...action.payload,
+        };
       }
+    },
+    clearNearbyShops: (state) => {
+      state.nearbyShops = [];
     },
   },
   extraReducers: (builder) => {
@@ -54,7 +59,7 @@ const shopsSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchNearbyShops.fulfilled, (state, action) => {
-        state.nearbyShops = action.payload; // ✅ now always an array
+        state.nearbyShops = Array.isArray(action.payload) ? action.payload : [];
         state.loading = false;
       })
       .addCase(fetchNearbyShops.rejected, (state, action) => {
@@ -62,7 +67,8 @@ const shopsSlice = createSlice({
         state.loading = false;
       });
   },
+
 });
 
-export const { addShop, updateShop } = shopsSlice.actions;
+export const { addShop, updateShop, clearNearbyShops } = shopsSlice.actions;
 export default shopsSlice.reducer;

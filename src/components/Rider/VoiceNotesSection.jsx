@@ -1,12 +1,23 @@
+// VoiceNotesSection.jsx
 import React, { useRef, useState } from "react";
 import { Mic } from "lucide-react";
 
-const VoiceNotesSection = ({ voiceNotes, setFormData }) => {
+const VoiceNotesSection = ({ 
+  voiceNotes, 
+  setFormData, 
+  initialVoiceNotes = [], 
+  onDeleteExisting 
+}) => {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
   const startRecording = async () => {
+
+          if (voiceNotes.length >= 1) {
+            alert("⚠️ You can only record one voice note.");
+            return;
+          }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
@@ -19,10 +30,12 @@ const VoiceNotesSection = ({ voiceNotes, setFormData }) => {
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         const url = URL.createObjectURL(blob);
+
         setFormData((prev) => ({
           ...prev,
           voiceNotes: [...prev.voiceNotes, { blob, url }],
         }));
+
         stream.getTracks().forEach((t) => t.stop());
       };
 
@@ -41,7 +54,8 @@ const VoiceNotesSection = ({ voiceNotes, setFormData }) => {
     }
   };
 
-  const removeVoiceNote = (index) => {
+  // Remove newly recorded note
+  const removeNewVoiceNote = (index) => {
     setFormData((prev) => ({
       ...prev,
       voiceNotes: prev.voiceNotes.filter((_, i) => i !== index),
@@ -51,17 +65,20 @@ const VoiceNotesSection = ({ voiceNotes, setFormData }) => {
   return (
     <div>
       <h3 className="text-lg font-semibold mb-3">Voice Notes (Optional)</h3>
-      {voiceNotes.length > 0 && (
+
+      {/* ✅ Existing voice notes from backend */}
+      {initialVoiceNotes.length > 0 && (
         <div className="space-y-2 mb-3">
-          {voiceNotes.map((note, i) => (
+          {initialVoiceNotes.map((note) => (
             <div
-              key={i}
+              key={note.id}
               className="flex items-center justify-between p-2 bg-gray-50 border rounded-lg"
             >
-              <audio controls src={note.url} className="w-full mr-2" />
+              {/* backend sends `file` as the audio URL */}
+              <audio controls src={note.file} className="w-full mr-2" />
               <button
                 type="button"
-                onClick={() => removeVoiceNote(i)}
+                onClick={() => onDeleteExisting(note.id)}
                 className="text-sm text-red-500 hover:text-red-700"
               >
                 Delete
@@ -70,6 +87,29 @@ const VoiceNotesSection = ({ voiceNotes, setFormData }) => {
           ))}
         </div>
       )}
+
+      {/* ✅ Newly recorded notes */}
+      {voiceNotes.length > 0 && (
+        <div className="space-y-2 mb-3">
+          {voiceNotes.map((note, i) => (
+            <div
+              key={`new-${i}`}
+              className="flex items-center justify-between p-2 bg-gray-50 border rounded-lg"
+            >
+              <audio controls src={note.url} className="w-full mr-2" />
+              <button
+                type="button"
+                onClick={() => removeNewVoiceNote(i)}
+                className="text-sm text-red-500 hover:text-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 🎤 Record button */}
       <button
         type="button"
         onClick={isRecording ? stopRecording : startRecording}

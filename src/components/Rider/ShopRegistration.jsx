@@ -1,16 +1,22 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useDispatch } from "react-redux";
-import { addShop } from "../../store/slices/shopsSlice";
-import { Camera, Mic, Upload } from "lucide-react";
+import { addShop, updateShop } from "../../store/slices/shopsSlice";
+import { Camera, Mic, Upload, X } from "lucide-react";
 import AlertMessage from "../common/AlertMessage.jsx";
 import GpsCapture from "./GpsCapture.jsx";
-import VoiceNotesSection from "./VoiceNotesSection.jsx"; // ⬅️ new
+import VoiceNotesSection from "./VoiceNotesSection.jsx";
 import api from "../../utils/axiosInstance.js";
 
-const ShopRegistration = () => {
+async function computeHash(blob) {
+  const buffer = await blob.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
   const dispatch = useDispatch();
 
-  // form + UI state
   const [formData, setFormData] = useState({
     name: "",
     ownerName: "",
@@ -18,34 +24,117 @@ const ShopRegistration = () => {
     frontImage: null,
     frontImagePreview: "",
     insideImages: [],
-    insideImagePreviews: [],
+    deletedInsideImages: [],
     voiceNotes: [],
+    existingVoiceNotes: [],
+    deletedVoiceNotes: [],
   });
 
-  // GPS + Address
   const [gps, setGps] = useState(null);
   const [shopAddress, setShopAddress] = useState("");
-
-  // Alert
   const [alert, setAlert] = useState({ message: "", type: "", visible: false });
+  const [loading, setLoading] = useState(false);
+  const [existingImageHashes, setExistingImageHashes] = useState({});
+  const [currentImageHashes, setCurrentImageHashes] = useState(new Set());
 
+  const objectUrlsRef = useRef(new Set());
+  const hasPrepopulated = useRef(false);
 
+  // Prepopulate form on edit
+  useEffect(() => {
+    if (shop && mode === "edit" && !hasPrepopulated.current) {
+      setFormData((prev) => ({
+        ...prev,
+        name: shop.shop_name || "",
+        ownerName: shop.owner_name || "",
+        ownerPhone: shop.owner_phone || "",
+        frontImage: null,
+        frontImagePreview: shop.shop_image || "",
+        deletedInsideImages: [],
+        existingVoiceNotes: shop.voice_notes || [],
+        deletedVoiceNotes: [],
+      }));
 
-  const handleLocationCaptured = (loc) => {
-    setGps(loc);
-    if (loc?.address) {
-      setShopAddress(loc.address);
+      setGps({
+        lat: shop.latitude,
+        lng: shop.longitude,
+        accuracy: shop.accuracy,
+        status: "ready",
+      });
+
+      setShopAddress(shop.shop_address || "");
+      hasPrepopulated.current = true;
     }
-  };
 
+    return () => {
+      hasPrepopulated.current = false;
+    };
+  }, [shop?.id, mode]);
 
-  // 📝 Input change
+  // Compute hashes for existing images in edit mode
+  useEffect(() => {
+    if (mode === "edit" && shop?.images?.length) {
+      const computeHashes = async () => {
+        const hashes = {};
+        const promises = shop.images.map(async (img) => {
+          try {
+            const response = await fetch(img.image);
+            if (!response.ok) return;
+            const blob = await response.blob();
+            const hash = await computeHash(blob);
+            hashes[img.id] = hash;
+          } catch (e) {
+            console.error("Failed to hash existing image", img.id, e);
+          }
+        });
+        await Promise.all(promises);
+        setExistingImageHashes(hashes);
+        setCurrentImageHashes(new Set(Object.values(hashes)));
+      };
+      computeHashes();
+    }
+  }, [shop, mode]);
+
+  // Compute all inside images with deduplication by id
+  const allInsideImages = useMemo(() => {
+    const existing = (shop?.images || [])
+      .filter((img) => !formData.deletedInsideImages.includes(img.id))
+      .map((img) => ({
+        type: "existing",
+        url: img.image,
+        id: `existing-${img.id}`,
+        file: null,
+        originalId: img.id,
+      }));
+
+    const newlyAdded = formData.insideImages.map((img) => ({
+      type: "new",
+      url: img.preview,
+      id: img.id,
+      file: img.file,
+    }));
+
+    const seen = new Set();
+    return [...existing, ...newlyAdded].filter((img) => {
+      if (seen.has(img.id)) return false;
+      seen.add(img.id);
+      return true;
+    });
+  }, [shop?.images, formData.insideImages, formData.deletedInsideImages]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      objectUrlsRef.current.clear();
+    };
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((p) => ({ ...p, [name]: value }));
   };
 
-  // 🎤 Voice input for text fields
   const handleVoiceInput = (field) => {
     if (!("webkitSpeechRecognition" in window)) {
       alert("Voice recognition not supported in this browser.");
@@ -60,186 +149,269 @@ const ShopRegistration = () => {
     };
   };
 
-  // 📷 Front image
   const handleFrontImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (formData.frontImagePreview && formData.frontImagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(formData.frontImagePreview);
+      objectUrlsRef.current.delete(formData.frontImagePreview);
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    objectUrlsRef.current.add(objectUrl);
+
     setFormData((prev) => ({
       ...prev,
       frontImage: file,
-      frontImagePreview: URL.createObjectURL(file),
-    }));
-  };
-
-  // 📷 Inside images
-  const handleInsideImagesUpload = (e) => {
-    const files = e.target.files ? Array.from(e.target.files) : [];
-    if (!files.length) return;
-    setFormData((prev) => ({
-      ...prev,
-      insideImages: [...prev.insideImages, ...files],
-      insideImagePreviews: [
-        ...prev.insideImagePreviews,
-        ...files.map((f) => URL.createObjectURL(f)),
-      ],
-    }));
-  };
-
-  const handleInsideImageCapture = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFormData((prev) => ({
-      ...prev,
-      insideImages: [...prev.insideImages, file],
-      insideImagePreviews: [
-        ...prev.insideImagePreviews,
-        URL.createObjectURL(file),
-      ],
+      frontImagePreview: objectUrl,
     }));
     e.target.value = "";
   };
 
-  const removeInsideImage = (index) => {
+  const addInsideImages = async (files) => {
+    if (!files?.length) return;
+
+    const newImages = [];
+    for (const file of Array.from(files)) {
+      const hash = await computeHash(file);
+      if (currentImageHashes.has(hash)) {
+        console.log("Duplicate image detected and skipped");
+        continue;
+      }
+
+      const objectUrl = URL.createObjectURL(file);
+      objectUrlsRef.current.add(objectUrl);
+
+      newImages.push({
+        file,
+        preview: objectUrl,
+        id: hash,
+        hash,
+      });
+    }
+
+    if (newImages.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        insideImages: [...prev.insideImages, ...newImages],
+      }));
+
+      setCurrentImageHashes((prev) => {
+        const newSet = new Set(prev);
+        newImages.forEach((img) => newSet.add(img.hash));
+        return newSet;
+      });
+    }
+  };
+
+  const handleInsideImagesUpload = (e) => {
+    addInsideImages(e.target.files);
+    e.target.value = "";
+  };
+
+  const handleInsideImageCapture = (e) => {
+    addInsideImages(e.target.files);
+    e.target.value = "";
+  };
+
+  const removeInsideImage = useCallback(
+    (imageToRemove) => {
+      let hash;
+      if (imageToRemove.type === "existing") {
+        hash = existingImageHashes[imageToRemove.originalId];
+        setFormData((prev) => ({
+          ...prev,
+          deletedInsideImages: [...prev.deletedInsideImages, imageToRemove.originalId],
+        }));
+      } else {
+        hash = imageToRemove.hash;
+        if (imageToRemove.preview?.startsWith("blob:")) {
+          URL.revokeObjectURL(imageToRemove.preview);
+          objectUrlsRef.current.delete(imageToRemove.preview);
+        }
+        setFormData((prev) => ({
+          ...prev,
+          insideImages: prev.insideImages.filter((img) => img.id !== imageToRemove.id),
+        }));
+      }
+
+      if (hash) {
+        setCurrentImageHashes((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(hash);
+          return newSet;
+        });
+      }
+    },
+    [existingImageHashes]
+  );
+
+  const handleLocationCaptured = (loc) => {
+    setGps(loc);
+    if (loc?.address) setShopAddress(loc.address);
+  };
+
+  const handleDeleteExistingVoiceNote = (id) => {
     setFormData((prev) => ({
       ...prev,
-      insideImages: prev.insideImages.filter((_, i) => i !== index),
-      insideImagePreviews: prev.insideImagePreviews.filter((_, i) => i !== index),
+      deletedVoiceNotes: [...prev.deletedVoiceNotes, id],
+      existingVoiceNotes: prev.existingVoiceNotes.filter((n) => n.id !== id),
     }));
   };
 
-  // ✅ Submit
+  const resetForm = useCallback(() => {
+    objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    objectUrlsRef.current.clear();
+
+    setFormData({
+      name: "",
+      ownerName: "",
+      ownerPhone: "",
+      frontImage: null,
+      frontImagePreview: "",
+      insideImages: [],
+      deletedInsideImages: [],
+      voiceNotes: [],
+      existingVoiceNotes: [],
+      deletedVoiceNotes: [],
+    });
+    setGps(null);
+    setShopAddress("");
+    setExistingImageHashes({});
+    setCurrentImageHashes(new Set());
+    hasPrepopulated.current = false;
+  }, []);
+
+  const getChangedFields = () => {
+    if (!shop) return { ...formData };
+
+    const changed = {};
+    if (formData.name !== shop.shop_name) changed.shop_name = formData.name;
+    if (formData.ownerName !== shop.owner_name) changed.owner_name = formData.ownerName;
+    if (formData.ownerPhone !== shop.owner_phone) changed.owner_phone = formData.ownerPhone;
+    if (shopAddress !== shop.shop_address) changed.shop_address = shopAddress;
+
+    if (gps) {
+      const lat = Number(gps.lat).toFixed(6);
+      const lng = Number(gps.lng).toFixed(6);
+      const acc = Number(gps.accuracy).toFixed(2);
+      if (lat !== String(shop.latitude)) changed.latitude = lat;
+      if (lng !== String(shop.longitude)) changed.longitude = lng;
+      if (acc !== String(shop.accuracy)) changed.accuracy = acc;
+    }
+
+    if (formData.frontImage) changed.shop_image = formData.frontImage;
+    if (formData.insideImages.length) changed.images = formData.insideImages.map((img) => img.file);
+    if (formData.deletedInsideImages.length) changed.delete_images = formData.deletedInsideImages;
+    if (formData.voiceNotes.length) changed.voice_notes = formData.voiceNotes.map((n) => n.blob);
+    if (formData.deletedVoiceNotes.length) changed.delete_voice_notes = formData.deletedVoiceNotes;
+
+    return changed;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (
-      !formData.name ||
-      !formData.ownerName ||
-      !formData.ownerPhone ||
-      !formData.frontImage ||
-      formData.insideImages.length === 0
-    ) {
-      setAlert({
-        message: "Please complete all required fields.",
-        type: "error",
-        visible: true,
-      });
+    if (!formData.name || !formData.ownerName || !formData.ownerPhone) {
+      setAlert({ message: "Please fill all required fields.", type: "error", visible: true });
       return;
     }
     if (!gps || gps.status !== "ready") {
-      setAlert({
-        message: "Please capture GPS location.",
-        type: "warning",
-        visible: true,
-      });
+      setAlert({ message: "Please capture GPS location.", type: "warning", visible: true });
       return;
     }
 
-    const roundTo6 = (num) => parseFloat(num.toFixed(6));
+    setLoading(true);
 
-    try {
-      const payload = new FormData();
+    const payload = new FormData();
+    const roundedGps = { lat: Number(gps.lat).toFixed(6), lng: Number(gps.lng).toFixed(6), accuracy: Number(gps.accuracy).toFixed(2) };
+
+    if (mode === "edit" && shop?.id) {
+      const changedFields = getChangedFields();
       payload.append("shop_name", formData.name);
       payload.append("owner_name", formData.ownerName);
       payload.append("owner_phone", formData.ownerPhone);
-      payload.append("shop_image", formData.frontImage);
-      payload.append("status", "open");
-      payload.append("latitude", roundTo6(gps.lat));
-      payload.append("longitude", roundTo6(gps.lng));
-      payload.append("accuracy", gps.accuracy);
       payload.append("shop_address", shopAddress);
+      payload.append("latitude", roundedGps.lat);
+      payload.append("longitude", roundedGps.lng);
+      payload.append("accuracy", roundedGps.accuracy);
 
-      formData.insideImages.forEach((img) => payload.append("images", img));
-      formData.voiceNotes.forEach((note) =>
-        payload.append("voice_notes", note.blob, "voice_note.webm")
-      );
+      if (changedFields.shop_image) payload.append("shop_image", changedFields.shop_image);
+      if (changedFields.images) changedFields.images.forEach((img) => payload.append("images", img));
+      if (changedFields.delete_images) payload.append("delete_images", JSON.stringify(changedFields.delete_images));
+      if (changedFields.voice_notes) changedFields.voice_notes.forEach((blob) => payload.append("voice_notes", blob));
+      if (changedFields.delete_voice_notes) payload.append("delete_voice_notes", JSON.stringify(changedFields.delete_voice_notes));
+    } else {
+      payload.append("shop_name", formData.name);
+      payload.append("owner_name", formData.ownerName);
+      payload.append("owner_phone", formData.ownerPhone);
+      payload.append("shop_address", shopAddress);
+      payload.append("latitude", roundedGps.lat);
+      payload.append("longitude", roundedGps.lng);
+      payload.append("accuracy", roundedGps.accuracy);
+      if (formData.frontImage) payload.append("shop_image", formData.frontImage);
+      formData.insideImages.forEach((img) => payload.append("images", img.file));
+      if (formData.deletedInsideImages.length) payload.append("delete_images", JSON.stringify(formData.deletedInsideImages));
+      formData.voiceNotes.forEach((n) => payload.append("voice_notes", n.blob));
+      if (formData.deletedVoiceNotes.length) payload.append("delete_voice_notes", JSON.stringify(formData.deletedVoiceNotes));
+    }
+    try {
+      let res;
+      if (mode === "edit" && shop?.id) {
+        res = await api.put(`plants-mall-shops/api/shops/${shop.id}/edit/`, payload, { headers: { "Content-Type": "multipart/form-data" } });
+        dispatch(updateShop(res.data));
+        // Reset blobs but keep shop data
+        setFormData((prev) => ({
+          ...prev,
+          frontImage: null,
+          insideImages: [],
+          deletedInsideImages: [],
+          voiceNotes: [],
+          deletedVoiceNotes: [],
+        }));
+      } else {
+        res = await api.post(`plants-mall-shops/api/shops/create/`, payload, { headers: { "Content-Type": "multipart/form-data" } });
+        dispatch(addShop(res.data));
+        resetForm();
+      }
 
-      const res = await api.post(
-        "plants-mall-shops/api/shops/create/",
-        payload,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-
-      dispatch(addShop(res.data));
-      setAlert({
-        message: "Shop registered successfully!",
-        type: "success",
-        visible: true,
-      });
-
-      // Cleanup
-      formData.voiceNotes.forEach((n) => URL.revokeObjectURL(n.url));
-      if (formData.frontImagePreview)
-        URL.revokeObjectURL(formData.frontImagePreview);
-      formData.insideImagePreviews.forEach((url) => URL.revokeObjectURL(url));
-
-      setFormData({
-        name: "",
-        ownerName: "",
-        ownerPhone: "",
-        frontImage: null,
-        frontImagePreview: "",
-        insideImages: [],
-        insideImagePreviews: [],
-        voiceNotes: [],
-      });
-      setGps(null);
-      setShopAddress("");
+      setAlert({ message: `Shop ${mode === "edit" ? "updated" : "registered"} successfully!`, type: "success", visible: true });
+      if (onSuccess) onSuccess();
     } catch (err) {
-      console.error("❌ Shop registration failed:", err);
-      setAlert({
-        message: "Failed to register shop. Please try again.",
-        type: "error",
-        visible: true,
-      });
+      console.error("❌ Shop submission failed:", err);
+      setAlert({ message: "Failed to submit shop. Please try again.", type: "error", visible: true });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto px-4">
-      {alert.visible && (
-        <AlertMessage
-          message={alert.message}
-          type={alert.type}
-          visible={alert.visible}
-          onClose={() => setAlert({ ...alert, visible: false })}
-        />
+    <div className="space-y-6 max-w-3xl mx-auto px-4 relative">
+      {alert.visible && <AlertMessage {...alert} onClose={() => setAlert({ ...alert, visible: false })} />}
+      {loading && (
+        <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-50 rounded-xl">
+          <div className="loader border-4 border-t-4 border-green-600 w-12 h-12 rounded-full animate-spin"></div>
+        </div>
       )}
-
-      {/* Header */}
       <div className="flex items-center space-x-3 mb-2">
         <div className="bg-green-100 p-2 rounded-lg">
           <Camera className="h-6 w-6 text-green-600" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Register New Shop</h2>
-          <p className="text-sm text-gray-600">
-            Fill the form and optionally add voice notes
-          </p>
+          <h2 className="text-2xl font-bold text-gray-900">{mode === "edit" ? "Edit Shop" : "Register New Shop"}</h2>
+          <p className="text-sm text-gray-600">Fill the form and optionally add voice notes</p>
         </div>
       </div>
 
-      {/* GPS Capture */}
-      <GpsCapture onLocationCaptured={handleLocationCaptured} />
+      <GpsCapture onLocationCaptured={handleLocationCaptured} initialGps={gps} />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Shop Name */}
         <div>
           <label className="block text-sm font-medium mb-2">Shop Name</label>
           <div className="flex gap-2 items-center">
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="flex-1 px-4 py-3 border rounded-lg"
-              placeholder="Enter shop name"
-            />
-            <button
-              type="button"
-              onClick={() => handleVoiceInput("name")}
-              className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200"
-            >
+            <input type="text" name="name" value={formData.name} onChange={handleChange} required className="flex-1 px-4 py-3 border rounded-lg" placeholder="Enter shop name" />
+            <button type="button" onClick={() => handleVoiceInput("name")} className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200">
               <Mic className="h-5 w-5" />
             </button>
           </div>
@@ -249,20 +421,8 @@ const ShopRegistration = () => {
         <div>
           <label className="block text-sm font-medium mb-2">Owner Name</label>
           <div className="flex gap-2 items-center">
-            <input
-              type="text"
-              name="ownerName"
-              value={formData.ownerName}
-              onChange={handleChange}
-              required
-              className="flex-1 px-4 py-3 border rounded-lg"
-              placeholder="Enter owner name"
-            />
-            <button
-              type="button"
-              onClick={() => handleVoiceInput("ownerName")}
-              className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200"
-            >
+            <input type="text" name="ownerName" value={formData.ownerName} onChange={handleChange} required className="flex-1 px-4 py-3 border rounded-lg" placeholder="Enter owner name" />
+            <button type="button" onClick={() => handleVoiceInput("ownerName")} className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200">
               <Mic className="h-5 w-5" />
             </button>
           </div>
@@ -272,20 +432,8 @@ const ShopRegistration = () => {
         <div>
           <label className="block text-sm font-medium mb-2">Owner Phone</label>
           <div className="flex gap-2 items-center">
-            <input
-              type="tel"
-              name="ownerPhone"
-              value={formData.ownerPhone}
-              onChange={handleChange}
-              required
-              className="flex-1 px-4 py-3 border rounded-lg"
-              placeholder="Enter phone number"
-            />
-            <button
-              type="button"
-              onClick={() => handleVoiceInput("ownerPhone")}
-              className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200"
-            >
+            <input type="tel" name="ownerPhone" value={formData.ownerPhone} onChange={handleChange} required className="flex-1 px-4 py-3 border rounded-lg" placeholder="Enter phone number" />
+            <button type="button" onClick={() => handleVoiceInput("ownerPhone")} className="p-3 bg-gray-100 rounded-lg hover:bg-gray-200">
               <Mic className="h-5 w-5" />
             </button>
           </div>
@@ -293,95 +441,39 @@ const ShopRegistration = () => {
 
         {/* Front Image */}
         <div>
-          <label className="block text-sm font-medium mb-2">
-            Front Image of Shop
-          </label>
+          <label className="block text-sm font-medium mb-2">Front Image of Shop</label>
           <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              id="frontImageUpload"
-              type="file"
-              accept="image/*"
-              onChange={handleFrontImageUpload}
-              className="hidden"
-            />
-            <input
-              id="frontImageCapture"
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFrontImageUpload}
-              className="hidden"
-            />
-            <label
-              htmlFor="frontImageUpload"
-              className="flex items-center justify-center flex-1 px-4 py-3 border rounded-lg cursor-pointer"
-            >
+            <input id="frontImageUpload" type="file" accept="image/*" onChange={handleFrontImageUpload} className="hidden" />
+            <input id="frontImageCapture" type="file" accept="image/*" capture="environment" onChange={handleFrontImageUpload} className="hidden" />
+            <label htmlFor="frontImageUpload" className="flex items-center justify-center flex-1 px-4 py-3 border rounded-lg cursor-pointer">
               <Upload className="h-5 w-5 mr-2" /> Upload
             </label>
-            <label
-              htmlFor="frontImageCapture"
-              className="flex items-center justify-center flex-1 px-4 py-3 border rounded-lg cursor-pointer"
-            >
+            <label htmlFor="frontImageCapture" className="flex items-center justify-center flex-1 px-4 py-3 border rounded-lg cursor-pointer">
               <Camera className="h-5 w-5 mr-2" /> Capture
             </label>
           </div>
-          {formData.frontImagePreview && (
-            <img
-              src={formData.frontImagePreview}
-              alt="Preview"
-              className="h-40 w-auto mt-3 rounded-lg border mx-auto"
-            />
-          )}
+          {formData.frontImagePreview && <img src={formData.frontImagePreview} alt="Preview" className="h-40 w-auto mt-3 rounded-lg border mx-auto" />}
         </div>
 
         {/* Inside Images */}
         <div>
-          <label className="block text-sm font-medium mb-2">
-            Inside Shop Images
-          </label>
-          <input
-            id="insideImagesUpload"
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleInsideImagesUpload}
-            className="hidden"
-          />
-          <label
-            htmlFor="insideImagesUpload"
-            className="flex items-center justify-center px-4 py-3 border rounded-lg cursor-pointer mb-2"
-          >
+          <label className="block text-sm font-medium mb-2">Inside Shop Images</label>
+          <input id="insideImagesUpload" type="file" accept="image/*" multiple onChange={handleInsideImagesUpload} className="hidden" />
+          <label htmlFor="insideImagesUpload" className="flex items-center justify-center px-4 py-3 border rounded-lg cursor-pointer mb-2">
             <Upload className="h-5 w-5 mr-2" /> Upload
           </label>
-          <input
-            id="insideImageCapture"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleInsideImageCapture}
-            className="hidden"
-          />
-          <label
-            htmlFor="insideImageCapture"
-            className="flex items-center justify-center px-4 py-3 border rounded-lg cursor-pointer"
-          >
+          <input id="insideImageCapture" type="file" accept="image/*" capture="environment" onChange={handleInsideImageCapture} className="hidden" />
+          <label htmlFor="insideImageCapture" className="flex items-center justify-center px-4 py-3 border rounded-lg cursor-pointer">
             <Camera className="h-5 w-5 mr-2" /> Capture
           </label>
-          {formData.insideImagePreviews.length > 0 && (
+
+          {allInsideImages.length > 0 && (
             <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {formData.insideImagePreviews.map((url, i) => (
-                <div key={i} className="relative">
-                  <img
-                    src={url}
-                    alt={`Inside ${i}`}
-                    className="h-32 w-full object-cover rounded-lg border"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeInsideImage(i)}
-                    className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 py-1 rounded"
-                  >
-                    ✕
+              {allInsideImages.map((image) => (
+                <div key={image.id} className="relative">
+                  <img src={image.url} alt={`Inside ${image.id}`} className="h-32 w-full object-cover rounded-lg border" />
+                  <button type="button" onClick={() => removeInsideImage(image)} className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full flex items-center justify-center h-6 w-6">
+                    <X size={16} />
                   </button>
                 </div>
               ))}
@@ -389,19 +481,12 @@ const ShopRegistration = () => {
           )}
         </div>
 
-        {/* Voice Notes Section (separated) */}
-        <VoiceNotesSection
-          voiceNotes={formData.voiceNotes}
-          setFormData={setFormData}
-        />
+        <VoiceNotesSection voiceNotes={formData.voiceNotes} setFormData={setFormData} initialVoiceNotes={formData.existingVoiceNotes} onDeleteExisting={handleDeleteExistingVoiceNote} />
 
         {/* Submit */}
         <div className="pt-4">
-          <button
-            type="submit"
-            className="w-full bg-green-600 text-white font-semibold py-3 rounded-xl hover:bg-green-700"
-          >
-            Register Shop
+          <button type="submit" className="w-full bg-green-600 text-white font-semibold py-3 rounded-xl hover:bg-green-700">
+            {mode === "edit" ? "Update Shop" : "Register Shop"}
           </button>
         </div>
       </form>
