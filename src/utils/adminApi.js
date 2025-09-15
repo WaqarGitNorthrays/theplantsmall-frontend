@@ -1,12 +1,12 @@
-// src/utils/axiosInstance.js
+// src/utils/adminApi.js
 import axios from "axios";
 
-const api = axios.create({
+const adminApi = axios.create({
   baseURL: "http://192.168.2.7/",
   headers: {
-    // "Content-Type": "application/json",
+    "Content-Type": "application/json",
   },
-  timeout: 10000, // 10s timeout
+  timeout: 10000,
 });
 
 // 🔄 Flag to prevent multiple refresh requests
@@ -24,10 +24,10 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// ✅ Request interceptor: attach access token
-api.interceptors.request.use(
+// ✅ Request interceptor → attach admin access token
+adminApi.interceptors.request.use(
   (config) => {
-    const accessToken = localStorage.getItem("accessToken");
+    const accessToken = localStorage.getItem("adminAccessToken");
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -36,8 +36,8 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ✅ Response interceptor: handle 401 + refresh logic
-api.interceptors.response.use(
+// ✅ Response interceptor → handle refresh token logic
+adminApi.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
@@ -51,7 +51,7 @@ api.interceptors.response.use(
         })
           .then((token) => {
             originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
+            return adminApi(originalRequest);
           })
           .catch((err) => Promise.reject(err));
       }
@@ -60,45 +60,45 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = localStorage.getItem("refreshToken");
+        const refreshToken = localStorage.getItem("adminRefreshToken");
 
         if (!refreshToken) {
-          throw new Error("No refresh token available");
+          throw new Error("No admin refresh token available");
         }
 
-        // 🔑 Call refresh endpoint
-        const { data } = await axios.post("http://192.168.2.7/auth/api/refresh/", {
-          refresh: refreshToken,
-        });
+        // 🔑 Refresh admin token
+        const { data } = await axios.post(
+          "http://192.168.2.7/auth/api/refresh/",
+          { refresh: refreshToken }
+        );
 
         const newAccessToken = data.access;
 
-        // Save new access token
-        localStorage.setItem("accessToken", newAccessToken);
+        // Save new admin access token
+        localStorage.setItem("adminAccessToken", newAccessToken);
 
         // Update queued requests
         processQueue(null, newAccessToken);
 
-        // Retry original request with new token
+        // Retry original request
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        return api(originalRequest);
+        return adminApi(originalRequest);
       } catch (err) {
         processQueue(err, null);
 
-        // 🚪 If refresh fails → clear storage + redirect login
-        localStorage.removeItem("auth");
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        window.location.href = "/"; // Redirect to role selection/login
+        // 🚪 If refresh fails → clear admin tokens + redirect
+        localStorage.removeItem("adminAccessToken");
+        localStorage.removeItem("adminRefreshToken");
+        window.location.href = "/"; // force re-login
         return Promise.reject(err);
       } finally {
         isRefreshing = false;
       }
     }
 
-    console.error("API error:", error.response?.data || error.message);
+    console.error("Admin API error:", error.response?.data || error.message);
     return Promise.reject(error);
   }
 );
 
-export default api;
+export default adminApi;

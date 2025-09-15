@@ -1,11 +1,14 @@
 // pages/RiderDashboard.jsx
-import React, { useState } from "react";
-import { useSelector } from "react-redux";
+import React, { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import Layout from "../Layout/Layout";
 import OrderTaking from "./Order/OrderTaking";
 import ShopRegistration from "./ShopRegistration";
 import { Store, Plus, MapPin, Edit } from "lucide-react";
 import { useRealTimeUpdates } from "../../hooks/useRealTimeUpdates";
+import { fetchOrders } from "../../store/slices/ordersSlice";
+import { formatAddress } from "../../utils/formatAddress";
+
 
 const RiderDashboard = () => {
   const [activeTab, setActiveTab] = useState("shops");
@@ -19,6 +22,11 @@ const RiderDashboard = () => {
 
   const { nearbyShops, loading, error } = useSelector((state) => state.shops);
   const orders = useSelector((state) => state.orders.orders);
+
+  const dispatch = useDispatch();
+  useEffect(() => {
+    dispatch(fetchOrders())
+  }, [dispatch]);
 
   const myOrders = orders.filter((order) => {
   if (String(order.order_taker) === String(salesmanId)) return true;
@@ -152,7 +160,7 @@ const RiderDashboard = () => {
                           </p>
                           <p className="text-xs text-gray-400 flex items-center mt-1">
                             <MapPin className="h-3 w-3 mr-1" />
-                            {shop.shop_address}
+                            {formatAddress(shop.shop_address)}
                           </p>
                         </div>
                         <div className="text-right flex flex-col items-end space-y-1">

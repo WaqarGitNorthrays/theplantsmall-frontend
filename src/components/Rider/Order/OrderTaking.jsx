@@ -3,12 +3,15 @@ import React, { useState, useRef, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchProducts } from "../../../store/slices/productsSlice";
 import { submitorder } from "../../../store/slices/ordersSlice";
+import { formatAddress } from "../../../utils/formatAddress.js";
 import OrderHistory from "./OrderHistory";
 import { Plus, Mic, MessageSquare, Store, Trash2, X } from "lucide-react";
 import { toast } from 'react-toastify';
 import GpsCapture from "../GpsCapture.jsx";
 import "../../../assets/css/OrderTaking.css";
 import api from "../../../utils/axiosInstance.js";
+
+
 const OrderTaking = ({ shopId }) => {
   const dispatch = useDispatch();
   const shops = useSelector((state) => state.shops.shops);
@@ -29,8 +32,6 @@ const OrderTaking = ({ shopId }) => {
   const [voiceOrderParsed, setVoiceOrderParsed] = useState([]); // parsed items from speech-to-text
   const [voiceProcessing, setVoiceProcessing] = useState(false); // loading state
 
-
-  // --- product/size/price state ---
   const [newItem, setNewItem] = useState({
     productId: "",
     name: "",
@@ -124,7 +125,6 @@ const selectedShop = nearbyShops.find((shop) => String(shop.id) === String(shopI
 
   const addOrderItem = () => {
     if (selectedProduct && selectedCotton && newItem.quantity > 0) {
-      // ✅ store cottonId + minPrice inside each item
       setOrderItems([
         ...orderItems,
         {
@@ -270,11 +270,13 @@ const handleSubmitVoiceOrder = async () => {
     // Map API response to your order item format
     const parsedItems = (data.results || []).map((item, idx) => ({
       id: Date.now() + idx,
-      productId: null, // backend mapping if needed
-      name: item.product,
+      productId: item.product, 
+      name: item.product_name,
       quantity: parseInt(item.quantity || 0),
-      price: parseFloat(item.discount_price || 0), // will be 0 if empty
+      discount_price: parseFloat(item.discount_price || 0), 
+      price: parseFloat(item.price || 0), 
       size: item.carton_packing_unit || "-",
+      
     }));
 
     setVoiceOrderParsed(parsedItems);
@@ -286,7 +288,6 @@ const handleSubmitVoiceOrder = async () => {
     setVoiceProcessing(false);
   }
 };
-
 
 
   // Submit order
@@ -338,18 +339,19 @@ const handleSubmitOrder = async () => {
     "items_data",
     JSON.stringify(
       voiceOrderParsed.map((item) => ({
-        product: item.name,
+        product: item.productId ? parseInt(item.productId) : null,
+        product_name: item.name,
         cotton: null,
         cotton_packing_unit: item.size,
         cotton_price: item.price.toFixed(2),
         quantity: item.quantity,
         unit_price: item.price.toFixed(2),
-        is_voice_order: true,
+        // is_voice_order: true,
       }))
     )
   );
 
-  voiceNotes.forEach((note) => formData.append("voice_notes", note.blob));
+  voiceNotes.forEach((note) => formData.append("voice_notes_data", note.blob));
 }
 
 
@@ -383,7 +385,7 @@ const handleSubmitOrder = async () => {
   } catch (err) {
     console.error("Order submission failed:", err);
 
-    // ✅ Display backend error message if exists, else default message
+    // Display backend error message if exists, else default message
     const message =
       err?.message ||
       err?.non_field_errors?.[0] ||
@@ -462,7 +464,7 @@ const handleSubmitOrder = async () => {
               </div>
               <p className="text-gray-800 font-semibold">{selectedShop.shop_name}</p>
               {selectedShop.shop_address && (
-                <p className="text-sm text-gray-600">{selectedShop.shop_address}</p>
+                <p className="text-sm text-gray-600">{formatAddress(selectedShop.shop_address)}</p>
               )}
               <div className="mt-2 text-sm text-gray-700">
                 {selectedShop.owner_name && (

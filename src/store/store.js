@@ -4,6 +4,7 @@ import shopsSlice from './slices/shopsSlice';
 import ordersSlice from './slices/ordersSlice';
 import salesmenSlice from './slices/ridersSlice';
 import productsSlice from './slices/productsSlice';
+import dashboardSlice from './slices/dashboardSlice';
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     orders: ordersSlice,
     salesmen: salesmenSlice,
     products: productsSlice,
+    dashboard: dashboardSlice,
   },
 });
 

@@ -10,7 +10,7 @@ export const fetchNearbyShops = createAsyncThunk(
       const res = await api.get("/plants-mall-shops/api/shops/nearby/", {
         params: { lat, lng },
       });
-      return res.data.results || []; // expected: array of shops
+      return res.data.results || [];
     } catch (err) {
       return rejectWithValue(
         err.response?.data || "Failed to fetch nearby shops"

@@ -13,8 +13,8 @@ const OrderHistory = ({ shopId }) => {
 
   const filteredOrders = orders.filter((o) => String(o.shop) === String(shopId));
 
-  if (loading) return <div className="p-4 text-center text-gray-600">⏳ Loading orders...</div>;
-  if (error) return <div className="p-4 text-center text-red-600">❌ Failed to load orders: {error}</div>;
+  if (loading) return <div className="p-4 text-center text-gray-600">Loading orders...</div>;
+  if (error) return <div className="p-4 text-center text-red-600">Failed to load orders: {error}</div>;
   if (filteredOrders.length === 0) return <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl text-center text-gray-600 text-sm sm:text-base">No previous orders for this shop.</div>;
 
   return (

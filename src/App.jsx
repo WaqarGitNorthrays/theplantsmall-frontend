@@ -1,3 +1,4 @@
+// src/App.jsx
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Provider, useSelector } from "react-redux";
@@ -13,7 +14,7 @@ import AdminDashboard from "./components/Admin/AdminDashboard";
 import OrderHistory from "./components/Rider/Order/OrderHistory";
 import { useRealTimeUpdates } from "./hooks/useRealTimeUpdates";
 
-// ✅ Private Route wrapper
+// ✅ Generic private route (for salesman/dispatcher)
 const PrivateRoute = ({ children, allowedRole }) => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
@@ -21,6 +22,18 @@ const PrivateRoute = ({ children, allowedRole }) => {
 
   if (allowedRole && user.role !== allowedRole) {
     return <Navigate to={`/${user.role}-dashboard`} replace />;
+  }
+
+  return children;
+};
+
+// ✅ Dedicated admin route
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const adminAccessToken = localStorage.getItem("adminAccessToken");
+
+  if (!isAuthenticated || user?.role !== "admin" || !adminAccessToken) {
+    return <Navigate to="/" replace />;
   }
 
   return children;
@@ -34,8 +47,8 @@ const AppContent = () => {
       {/* Public Routes */}
       <Route path="/" element={<Login />} />
       <Route path="/login/:role" element={<LoginForm />} />
-      <Route path="/register/:role" element={<RegisterForm />} /> {/* ✅ Register route */}
-      <Route path="/verify-email" element={<VerifyEmailForm />} /> {/* ✅ Register route */}
+      <Route path="/register/:role" element={<RegisterForm />} />
+      <Route path="/verify-email" element={<VerifyEmailForm />} />
 
       {/* Private Routes */}
       <Route
@@ -57,9 +70,9 @@ const AppContent = () => {
       <Route
         path="/admin-dashboard"
         element={
-          <PrivateRoute allowedRole="admin">
+          <AdminRoute>
             <AdminDashboard />
-          </PrivateRoute>
+          </AdminRoute>
         }
       />
 

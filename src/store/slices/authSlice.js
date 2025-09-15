@@ -10,6 +10,8 @@ const initialState = {
   isAuthenticated: savedAuth?.isAuthenticated || false,
   access: localStorage.getItem("accessToken") || null,
   refresh: localStorage.getItem("refreshToken") || null,
+  adminAccess: localStorage.getItem("adminAccessToken") || null,
+  adminRefresh: localStorage.getItem("adminRefreshToken") || null,
   error: null,
   loading: false,
 };
@@ -26,18 +28,32 @@ export const login = createAsyncThunk(
 
       const { access, refresh, user } = response.data;
 
-      // 🔑 Save tokens
+      // 🔑 Save user + role
+      const userData = { ...user, role };
+
+      // 🔑 Save normal tokens
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
 
-      // 🔑 Save user + role
-      const userData = { ...user, role };
+      // 🔑 If admin → also save admin tokens
+      if (role === "admin") {
+        localStorage.setItem("adminAccessToken", access);
+        localStorage.setItem("adminRefreshToken", refresh);
+      }
+
+      // 🔑 Save auth object
       localStorage.setItem(
         "auth",
         JSON.stringify({ user: userData, isAuthenticated: true })
       );
 
-      return { user: userData, access, refresh };
+      return {
+        user: userData,
+        access,
+        refresh,
+        adminAccess: role === "admin" ? access : null,
+        adminRefresh: role === "admin" ? refresh : null,
+      };
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.detail || "Login failed. Please try again."
@@ -55,12 +71,17 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.access = null;
       state.refresh = null;
+      state.adminAccess = null;
+      state.adminRefresh = null;
       state.error = null;
       state.loading = false;
 
+      // clear all tokens
       localStorage.removeItem("auth");
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      localStorage.removeItem("adminAccessToken");
+      localStorage.removeItem("adminRefreshToken");
     },
     restoreSession: (state) => {
       const saved = localStorage.getItem("auth");
@@ -70,6 +91,8 @@ const authSlice = createSlice({
         state.isAuthenticated = !!parsed.isAuthenticated;
         state.access = localStorage.getItem("accessToken") || null;
         state.refresh = localStorage.getItem("refreshToken") || null;
+        state.adminAccess = localStorage.getItem("adminAccessToken") || null;
+        state.adminRefresh = localStorage.getItem("adminRefreshToken") || null;
       }
     },
   },
@@ -83,6 +106,8 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.access = action.payload.access;
         state.refresh = action.payload.refresh;
+        state.adminAccess = action.payload.adminAccess;
+        state.adminRefresh = action.payload.adminRefresh;
         state.isAuthenticated = true;
         state.error = null;
         state.loading = false;
@@ -92,6 +117,8 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.access = null;
         state.refresh = null;
+        state.adminAccess = null;
+        state.adminRefresh = null;
         state.error = action.payload;
         state.loading = false;
       });
