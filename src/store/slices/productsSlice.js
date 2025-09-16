@@ -5,19 +5,19 @@ import api from "../../utils/axiosInstance.js";
 // -------------------- FETCH PRODUCTS --------------------
 export const fetchProducts = createAsyncThunk(
   "products/fetchProducts",
-  async ({ page, pageSize }, { rejectWithValue }) => {
+  async ({ page = 1, pageSize = 10 } = {}, { rejectWithValue }) => {
     try {
       const response = await api.get(
         `plants-mall-products/api/products/?page=${page}&page_size=${pageSize}`
       );
       console.log("Fetched products:", response.data);
 
+      // ✅ Always normalize products from nested response
       let products = [];
-
-      if (Array.isArray(response.data.results)) {
+      if (Array.isArray(response.data?.results?.results)) {
+        products = response.data.results.results;
+      } else if (Array.isArray(response.data?.results)) {
         products = response.data.results;
-      } else if (Array.isArray(response.data.results?.results)) {
-        products = response.data.results.results; // nested case
       } else if (Array.isArray(response.data)) {
         products = response.data;
       }
@@ -32,8 +32,6 @@ export const fetchProducts = createAsyncThunk(
     }
   }
 );
-
-
 
 // -------------------- ADD PRODUCT --------------------
 export const addProduct = createAsyncThunk(
@@ -52,6 +50,23 @@ export const addProduct = createAsyncThunk(
   }
 );
 
+// -------------------- UPDATE PRODUCT --------------------
+export const updateProduct = createAsyncThunk(
+  "products/updateProduct",
+  async ({ id, productData }, { rejectWithValue }) => {
+    try {
+      const response = await api.patch(
+        `plants-mall-products/api/products/${id}/`,
+        productData
+      );
+      return response.data; // returns updated product
+    } catch (err) {
+      console.error("Update product error:", err);
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
 const productsSlice = createSlice({
   name: "products",
   initialState: {
@@ -64,18 +79,19 @@ const productsSlice = createSlice({
   reducers: {
     clearProducts: (state) => {
       state.products = [];
+      state.count = 0;
     },
   },
   extraReducers: (builder) => {
     builder
-      // Fetch products
+      // -------------------- Fetch products --------------------
       .addCase(fetchProducts.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.loading = false;
-        state.products = action.payload.products;
+        state.products = action.payload.products; // ✅ clean array of product objects
         state.count = action.payload.count;
       })
       .addCase(fetchProducts.rejected, (state, action) => {
@@ -83,7 +99,7 @@ const productsSlice = createSlice({
         state.error = action.payload || action.error.message;
       })
 
-      // Add product
+      // -------------------- Add product --------------------
       .addCase(addProduct.pending, (state) => {
         state.adding = true;
         state.error = null;
@@ -93,12 +109,32 @@ const productsSlice = createSlice({
         // API returns single product object
         if (action.payload) {
           state.products.unshift(action.payload);
+          state.count += 1;
         }
       })
       .addCase(addProduct.rejected, (state, action) => {
         state.adding = false;
         state.error = action.payload || action.error.message;
+      })
+      
+       // -------------------- Update product --------------------
+      .addCase(updateProduct.pending, (state) => {
+        state.adding = true;
+        state.error = null;
+      })
+      .addCase(updateProduct.fulfilled, (state, action) => {
+        state.adding = false;
+        // Update the product in the products array
+        const index = state.products.findIndex(p => p.id === action.payload.id);
+        if (index !== -1) {
+          state.products[index] = action.payload;
+        }
+      })
+      .addCase(updateProduct.rejected, (state, action) => {
+        state.adding = false;
+        state.error = action.payload || action.error.message;
       });
+     
   },
 });
 

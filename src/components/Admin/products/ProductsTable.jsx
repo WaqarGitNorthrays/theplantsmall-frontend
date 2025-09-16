@@ -1,156 +1,209 @@
-// src/components/Admin/products/ProductsTable.jsx
-import { useState } from "react";
+import React, { useState } from "react";
+import { ChevronDown, ChevronUp, Edit } from "lucide-react";
+import AddProductModal from "./ProductsModal";
 
-export default function ProductsTable({ products, page, setPage, pageSize }) {
-  const [expandedRow, setExpandedRow] = useState(null);
+const ProductsTable = ({ products, error }) => {
+  const [expanded, setExpanded] = useState({});
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
-  const totalPages = Math.max(1, Math.ceil((products?.length || 0) / pageSize));
-
-  const toggleRow = (id) => {
-    setExpandedRow(expandedRow === id ? null : id);
+  const toggleExpand = (id) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+  const handleEdit = (product) => {
+    setEditingProduct(product);
+    setShowModal(true);
+  };
+  const closeModal = () => {
+    setEditingProduct(null);
+    setShowModal(false);
   };
 
-  const formatDate = (date) =>
-    date ? new Date(date).toLocaleDateString() : "";
-
-  const safeText = (value) =>
-    typeof value === "string" || typeof value === "number" ? value : "";
-
-  const safeImage = (product) =>
-    typeof product.image === "string" ? product.image : null;
+  if (error) {
+    return <p className="text-red-500 text-center py-10 text-lg font-medium">Error: {error}</p>;
+  }
+  if (!products || products.length === 0) {
+    return <p className="text-gray-400 text-center py-10 text-lg font-medium">No products found.</p>;
+  }
 
   return (
-    <div className="w-full">
+    <>
       {/* Desktop Table */}
-      <div className="hidden md:block overflow-x-auto rounded-lg shadow border border-gray-200">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-green-600 text-white uppercase text-xs">
+      <div className="overflow-x-auto hidden md:block">
+        <table className="min-w-full border border-gray-200 rounded-lg text-sm text-left overflow-hidden">
+          <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3">Image</th>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Price</th>
-              <th className="px-4 py-3">Discount</th>
-              <th className="px-4 py-3">Stock</th>
-              <th className="px-4 py-3">SKU</th>
-              <th className="px-4 py-3">Created</th>
+              <th className="px-4 py-3 border-b border-r text-gray-500">Image</th>
+              <th className="px-4 py-3 border-b border-r text-gray-500">Name</th>
+              <th className="px-4 py-3 border-b border-r text-gray-500">Description</th>
+              <th className="px-4 py-3 border-b border-r text-gray-500">Discount Price</th>
+              <th className="px-4 py-3 border-b border-r text-gray-500">SKU</th>
+              <th className="px-4 py-3 border-b border-r text-gray-500">Created At</th>
+              <th className="px-4 py-3 border-b border-r text-gray-500">Cottons</th>
+              <th className="px-4 py-3 border-b text-gray-500">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 bg-white">
-            {products?.map((product) => (
-              <tr key={product.id} className="hover:bg-green-50 transition">
-                <td className="px-4 py-3">
-                  {safeImage(product) ? (
+          <tbody>
+            {products.map((prod) => (
+              <React.Fragment key={prod.id}>
+                <tr className="hover:bg-gray-50 transition-colors duration-200">
+                  <td className="px-4 py-2 border-r border-b">
                     <img
-                      src={safeImage(product)}
-                      alt={safeText(product.name)}
-                      className="w-14 h-14 object-cover rounded-lg border"
+                      src={prod.image}
+                      alt={prod.name}
+                      className="w-14 h-14 object-cover rounded-lg"
                     />
-                  ) : (
-                    <span className="text-gray-400 italic">No image</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 font-medium text-gray-800">
-                  {safeText(product.name)}
-                </td>
-                <td className="px-4 py-3 text-gray-700">
-                  {safeText(product.price) ? `Rs ${product.price}` : "—"}
-                </td>
-                <td className="px-4 py-3 text-gray-700">
-                  {safeText(product.discount_price)
-                    ? `Rs ${product.discount_price}`
-                    : "—"}
-                </td>
-                <td className="px-4 py-3">{safeText(product.stock)}</td>
-                <td className="px-4 py-3">{safeText(product.sku)}</td>
-                <td className="px-4 py-3">{formatDate(product.created_at)}</td>
-              </tr>
+                  </td>
+                  <td className="px-4 py-2 border-r border-b font-medium text-gray-700">{prod.name}</td>
+                  <td className="px-4 py-2 border-r border-b text-gray-500">{prod.description}</td>
+                  <td className="px-4 py-2 border-r border-b font-semibold text-green-600">
+                    {prod.discount_price && prod.discount_price !== "0.00"
+                      ? `Rs ${prod.discount_price}`
+                      : "-"}
+                  </td>
+                  <td className="px-4 py-2 border-r border-b text-gray-500">{prod.sku}</td>
+                  <td className="px-4 py-2 border-r border-b text-gray-500">
+                    {new Date(prod.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-2 border-r border-b text-center">
+                    {prod.cottons?.length > 0 ? (
+                      <button
+                        onClick={() => toggleExpand(prod.id)}
+                        className="flex items-center gap-1 text-gray-600 hover:text-gray-800 transition-colors"
+                      >
+                        {expanded[prod.id] ? (
+                          <>
+                            Hide <ChevronUp size={16} />
+                          </>
+                        ) : (
+                          <>
+                            View <ChevronDown size={16} />
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <span className="text-gray-400">No Cottons</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2 border-b">
+                    <button
+                      onClick={() => handleEdit(prod)}
+                      className="flex items-center gap-1 text-white bg-emerald-500 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-emerald-600 transition-colors"
+                    >
+                      <Edit size={14} /> Edit
+                    </button>
+                  </td>
+                </tr>
+
+                {/* Expanded cottons row */}
+                {expanded[prod.id] && prod.cottons?.length > 0 && (
+                  <tr className="bg-gray-50">
+                    <td colSpan="9" className="px-4 py-3 border-b">
+                      <div className="overflow-x-auto rounded-lg">
+                        <table className="min-w-full border text-xs">
+                          <thead className="bg-gray-100">
+                            <tr>
+                              <th className="px-3 py-2 border-r text-gray-500">Packing Unit</th>
+                              <th className="px-3 py-2 border-r text-gray-500">Price</th>
+                              <th className="px-3 py-2 text-gray-500">Stock</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {prod.cottons.map((c) => (
+                              <tr key={c.id} className="hover:bg-white">
+                                <td className="px-3 py-1 border-r text-gray-600">{c.packing_unit}</td>
+                                <td className="px-3 py-1 border-r text-gray-600">Rs {c.price}</td>
+                                <td className="px-3 py-1 text-gray-600">{c.stock} pcs</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* Mobile Cards */}
-      <div className="md:hidden space-y-3">
-        {products?.map((product) => (
-          <div
-            key={product.id}
-            className="border rounded-lg shadow bg-white p-3"
-          >
-            <div
-              className="flex justify-between items-center cursor-pointer"
-              onClick={() => toggleRow(product.id)}
-            >
-              <div className="flex items-center space-x-3">
-                {safeImage(product) ? (
-                  <img
-                    src={safeImage(product)}
-                    alt={safeText(product.name)}
-                    className="w-12 h-12 object-cover rounded border"
-                  />
-                ) : (
-                  <div className="w-12 h-12 flex items-center justify-center bg-gray-100 rounded text-gray-400 text-xs">
-                    No Img
-                  </div>
-                )}
-                <h3 className="font-semibold text-gray-800">
-                  {safeText(product.name)}
-                </h3>
+      {/* Mobile View: Cards */}
+      <div className="space-y-4 md:hidden">
+        {products.map((prod) => (
+          <div key={prod.id} className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white transition-all duration-300 transform hover:shadow-md">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4 flex-grow">
+                <img
+                  src={prod.image}
+                  alt={prod.name}
+                  className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-gray-800 truncate">{prod.name}</h4>
+                  <p className="text-xs text-gray-500 mt-1">SKU: {prod.sku}</p>
+                  <p className="mt-2 text-sm font-medium text-green-600">
+                    {prod.discount_price && prod.discount_price !== "0.00"
+                      ? `Rs ${prod.discount_price}`
+                      : "No Discount"}
+                  </p>
+                </div>
               </div>
-              <span className="text-green-600 font-medium">
-                {safeText(product.discount_price)
-                  ? `Rs ${product.discount_price}`
-                  : ""}
-              </span>
+              <button
+                onClick={() => handleEdit(prod)}
+                className="flex-shrink-0 bg-emerald-500 text-white p-2 rounded-full hover:bg-emerald-600 transition-colors"
+              >
+                <Edit size={16} />
+              </button>
             </div>
 
-            {expandedRow === product.id && (
-              <div className="mt-2 text-sm text-gray-700 space-y-1 border-t pt-2">
-                <p>
-                  <span className="font-medium">Stock:</span>{" "}
-                  {safeText(product.stock)}
-                </p>
-                <p>
-                  <span className="font-medium">SKU:</span>{" "}
-                  {safeText(product.sku)}
-                </p>
-                <p>
-                  <span className="font-medium">Created:</span>{" "}
-                  {formatDate(product.created_at)}
-                </p>
-                {/* Cottons */}
-                {Array.isArray(product.cottons) &&
-                  product.cottons.map((c) => (
-                    <p key={c.id}>
-                      <span className="font-medium">{c.packing_unit}:</span> Rs{" "}
-                      {c.price} | Stock: {c.stock}
-                    </p>
-                  ))}
+            <p className="mt-4 text-sm text-gray-600 border-t border-gray-100 pt-4">
+              <span className="font-medium">Description:</span> {prod.description}
+            </p>
+            <p className="mt-2 text-xs text-gray-500">
+              Added: {new Date(prod.created_at).toLocaleDateString()}
+            </p>
+
+            {/* Mobile expand cottons */}
+            {prod.cottons?.length > 0 && (
+              <div className="mt-4">
+                <button
+                  onClick={() => toggleExpand(prod.id)}
+                  className="text-gray-600 text-sm flex items-center gap-1 font-medium hover:text-gray-800 transition-colors"
+                >
+                  {expanded[prod.id] ? (
+                    <>
+                      Hide Details <ChevronUp size={14} />
+                    </>
+                  ) : (
+                    <>
+                      View Details <ChevronDown size={14} />
+                    </>
+                  )}
+                </button>
+                {expanded[prod.id] && (
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                    {prod.cottons.map((c) => (
+                      <div key={c.id} className="flex flex-col border border-gray-200 px-3 py-2 rounded-lg bg-gray-100 shadow-sm min-w-[120px]">
+                        <span className="font-semibold text-gray-800">{c.packing_unit}</span>
+                        <span className="text-gray-600">Rs {c.price}</span>
+                        <span className="text-gray-600">{c.stock} pcs</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
         ))}
       </div>
 
-      {/* Pagination */}
-      <div className="flex justify-between items-center mt-4">
-        <button
-          disabled={page === 1}
-          onClick={() => setPage(page - 1)}
-          className="px-3 py-1 bg-green-600 text-white rounded disabled:opacity-50 disabled:bg-gray-400"
-        >
-          Prev
-        </button>
-        <span className="text-sm text-gray-700">
-          Page {page} of {totalPages}
-        </span>
-        <button
-          disabled={page === totalPages}
-          onClick={() => setPage(page + 1)}
-          className="px-3 py-1 bg-green-600 text-white rounded disabled:opacity-50 disabled:bg-gray-400"
-        >
-          Next
-        </button>
-      </div>
-    </div>
+      {/* Edit/Add Modal */}
+      {showModal && (
+        <AddProductModal onClose={closeModal} product={editingProduct} />
+      )}
+    </>
   );
-}
+};
+
+export default ProductsTable;

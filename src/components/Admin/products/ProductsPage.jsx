@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchProducts } from "../../../store/slices/productsSlice";
 import { Loader2, Plus } from "lucide-react";
 import AddProductModal from "./ProductsModal";
+import ProductsTable from "./ProductsTable";
 
 const ProductsPage = () => {
   const dispatch = useDispatch();
@@ -21,15 +22,19 @@ const ProductsPage = () => {
   const totalPages = Math.ceil(count / pageSize);
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold text-gray-900">Products</h3>
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 min-h-[calc(100vh-140px)] flex flex-col">
+      {/* Header and Controls */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-gray-100 pb-4">
+        <h3 className="text-2xl font-bold text-gray-800 mb-2 sm:mb-0">
+          Products
+        </h3>
         <div className="flex items-center gap-3">
-          <p className="text-gray-600">Total Products: {count}</p>
+          <p className="text-gray-500 text-sm font-medium">
+            Total Products: <span className="font-semibold">{count}</span>
+          </p>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-600 transition-all duration-300 transform hover:scale-105 shadow-md"
           >
             <Plus className="w-4 h-4" />
             Add Product
@@ -37,75 +42,32 @@ const ProductsPage = () => {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Products Table/Cards */}
       {loading ? (
-        <div className="flex justify-center items-center py-10">
-          <Loader2 className="animate-spin w-6 h-6 text-gray-500" />
+        <div className="flex justify-center items-center py-10 flex-grow">
+          <Loader2 className="animate-spin w-8 h-8 text-gray-400" />
         </div>
-      ) : error ? (
-        <p className="text-red-500">Error: {error}</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-200 text-sm text-left">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 border">Image</th>
-                <th className="px-4 py-2 border">Name</th>
-                <th className="px-4 py-2 border">Description</th>
-                <th className="px-4 py-2 border">Price</th>
-                <th className="px-4 py-2 border">Discount Price</th>
-                <th className="px-4 py-2 border">Stock</th>
-                <th className="px-4 py-2 border">SKU</th>
-                <th className="px-4 py-2 border">Weight (kg)</th>
-                <th className="px-4 py-2 border">Created At</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((prod) => (
-                <tr key={prod.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 border">
-                    <img
-                      src={prod.image}
-                      alt={prod.name}
-                      className="w-14 h-14 object-cover rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-2 border">{prod.name}</td>
-                  <td className="px-4 py-2 border">{prod.description}</td>
-                  <td className="px-4 py-2 border">Rs {prod.price}</td>
-                  <td className="px-4 py-2 border text-green-600 font-semibold">
-                    Rs {prod.discount_price}
-                  </td>
-                  <td className="px-4 py-2 border">{prod.stock}</td>
-                  <td className="px-4 py-2 border">{prod.sku}</td>
-                  <td className="px-4 py-2 border">{prod.weight_kg}</td>
-                  <td className="px-4 py-2 border">
-                    {new Date(prod.created_at).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ProductsTable products={products} error={error} />
       )}
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-between items-center mt-4">
+        <div className="flex justify-between items-center mt-6 py-2 border-t border-gray-100">
           <button
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50"
+            className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors"
           >
             Previous
           </button>
-          <span>
+          <span className="text-sm text-gray-600 font-medium">
             Page {page} of {totalPages}
           </span>
           <button
             disabled={page === totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50"
+            className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors"
           >
             Next
           </button>

@@ -4,6 +4,7 @@ import Layout from "../Layout/Layout";
 import AllOrders from "./AllOrders";
 import { fetchDashboardStats } from "../../store/slices/dashboardSlice";
 import ProductsPage from "./products/ProductsPage";
+import UsersPage from "./users/UsersPage";
 import {
   BarChart3,
   TrendingUp,
@@ -81,7 +82,7 @@ const AdminDashboard = () => {
             <h2 className="text-xl font-bold text-green-600">Admin</h2>
           </div>
           <nav className="p-4 space-y-2">
-            {["dashboard", "users", "products", "cotton"].map((tab) => (
+            {["dashboard", "users", "products"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -95,7 +96,6 @@ const AdminDashboard = () => {
                   dashboard: <Grid className="h-5 w-5" />,
                   users: <UserPlus className="h-5 w-5" />,
                   products: <ShoppingBag className="h-5 w-5" />,
-                  cotton: <Layers className="h-5 w-5" />,
                 }[tab]}
                 <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
               </button>
@@ -278,22 +278,10 @@ const AdminDashboard = () => {
             </>
           )}
 
-          {activeTab === "users" && (
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Users</h3>
-              <p className="text-gray-600">Users list and add user form will go here.</p>
-            </div>
-          )}
+          {activeTab === "users" && <UsersPage />}
 
           {activeTab === "products" && <ProductsPage />}
 
-
-          {activeTab === "cotton" && (
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Cotton</h3>
-              <p className="text-gray-600">Cotton stats and reports will go here.</p>
-            </div>
-          )}
         </div>
       </div>
     </Layout>

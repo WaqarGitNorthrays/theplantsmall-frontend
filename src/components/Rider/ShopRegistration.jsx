@@ -43,29 +43,27 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
   // Prepopulate form on edit
   useEffect(() => {
     if (shop && mode === "edit" && !hasPrepopulated.current) {
-      setFormData((prev) => ({
-        ...prev,
+      setFormData({
         name: shop.shop_name || "",
         ownerName: shop.owner_name || "",
         ownerPhone: shop.owner_phone || "",
         frontImage: null,
         frontImagePreview: shop.shop_image || "",
+        insideImages: [],
         deletedInsideImages: [],
+        voiceNotes: [],
         existingVoiceNotes: shop.voice_notes || [],
         deletedVoiceNotes: [],
-      }));
-
+      });
       setGps({
         lat: shop.latitude,
         lng: shop.longitude,
         accuracy: shop.accuracy,
         status: "ready",
       });
-
       setShopAddress(shop.shop_address || "");
       hasPrepopulated.current = true;
     }
-
     return () => {
       hasPrepopulated.current = false;
     };
@@ -361,14 +359,15 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
         res = await api.put(`plants-mall-shops/api/shops/${shop.id}/edit/`, payload, { headers: { "Content-Type": "multipart/form-data" } });
         dispatch(updateShop(res.data));
         // Reset blobs but keep shop data
-        setFormData((prev) => ({
-          ...prev,
-          frontImage: null,
-          insideImages: [],
-          deletedInsideImages: [],
-          voiceNotes: [],
-          deletedVoiceNotes: [],
-        }));
+        // setFormData((prev) => ({
+        //   ...prev,
+        //   frontImage: null,
+        //   insideImages: [],
+        //   deletedInsideImages: [],
+        //   voiceNotes: [],
+        //   deletedVoiceNotes: [],
+        // }));
+        resetForm();
       } else {
         res = await api.post(`plants-mall-shops/api/shops/create/`, payload, { headers: { "Content-Type": "multipart/form-data" } });
         dispatch(addShop(res.data));
