@@ -13,7 +13,9 @@ export const fetchNearbyShops = createAsyncThunk(
       return res.data.results || [];
     } catch (err) {
       return rejectWithValue(
-        err.response?.data || "Failed to fetch nearby shops"
+        err.response?.data?.message ||
+          err.response?.data ||
+          "Failed to fetch nearby shops"
       );
     }
   }
@@ -22,22 +24,24 @@ export const fetchNearbyShops = createAsyncThunk(
 const shopsSlice = createSlice({
   name: "shops",
   initialState: {
-    shops: [], // ✅ shops manually registered by salesman
-    nearbyShops: [], // ✅ shops fetched from API based on location
+    shops: [], // ✅ manually registered shops
+    nearbyShops: [], // ✅ API fetched shops
     loading: false,
     error: null,
+    lastFetched: null, // ✅ timestamp for last fetch
   },
   reducers: {
     addShop: (state, action) => {
+      state.error = null; // clear stale errors
       const payload = action.payload;
       state.shops.push({
         ...payload,
-        // if API already gives an id, use it
-        id: payload.id || Date.now().toString(),
+        id: payload.id || Date.now().toString(), // fallback id
         registeredAt: payload.registeredAt || new Date().toISOString(),
       });
     },
     updateShop: (state, action) => {
+      state.error = null;
       const index = state.shops.findIndex(
         (shop) => shop.id === action.payload.id
       );
@@ -50,6 +54,7 @@ const shopsSlice = createSlice({
     },
     clearNearbyShops: (state) => {
       state.nearbyShops = [];
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
@@ -59,15 +64,26 @@ const shopsSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchNearbyShops.fulfilled, (state, action) => {
-        state.nearbyShops = Array.isArray(action.payload) ? action.payload : [];
+        const shops = Array.isArray(action.payload) ? action.payload : [];
+
+        // ✅ deduplicate by shop.id
+        const unique = shops.filter(
+          (shop, index, self) =>
+            index === self.findIndex((s) => s.id === shop.id)
+        );
+
+        state.nearbyShops = unique;
         state.loading = false;
+        state.lastFetched = Date.now();
       })
       .addCase(fetchNearbyShops.rejected, (state, action) => {
-        state.error = action.payload;
+        state.error =
+          typeof action.payload === "string"
+            ? action.payload
+            : action.payload?.message || "Unknown error";
         state.loading = false;
       });
   },
-
 });
 
 export const { addShop, updateShop, clearNearbyShops } = shopsSlice.actions;

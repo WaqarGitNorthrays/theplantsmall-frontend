@@ -8,28 +8,63 @@ const UsersPage = () => {
   const dispatch = useDispatch();
   const { users, loading, error } = useSelector((state) => state.users);
 
-  const [showModal, setShowModal] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Users</h2>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-        >
-          Add User
-        </button>
+    <div className="min-h-screen" style={{ maxWidth: "900px", margin: "0 auto" }}>
+      <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-4 sm:mb-0">
+            User Management
+          </h1>
+          <button
+            onClick={() => {
+              setSelectedUser(null);
+              setIsModalOpen(true);
+            }}
+            className="px-6 py-3 bg-emerald-500 text-white font-semibold rounded-lg shadow-md hover:bg-emerald-600 transition-all duration-300 transform hover:-translate-y-1"
+          >
+            Add User
+          </button>
+        </div>
+
+        {loading && (
+          <p className="text-center text-gray-500 text-lg py-12">
+            Loading users...
+          </p>
+        )}
+        {error && (
+          <p className="text-red-500 text-center text-lg font-medium py-12">
+            Error: {error}
+          </p>
+        )}
+
+        {!loading && !error && (
+          <div className="w-full">
+            <div className="overflow-x-auto custom-scrollbar w-full">
+              <UsersTable
+                users={users}
+                onEdit={(user) => {
+                  setSelectedUser(user);
+                  setIsModalOpen(true);
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {loading && <p>Loading...</p>}
-      <UsersTable users={users} error={error} />
-
-      {showModal && <UsersModal onClose={() => setShowModal(false)} />}
+      {isModalOpen && (
+        <UsersModal
+          user={selectedUser}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

@@ -51,8 +51,7 @@ export const fetchOrders = createAsyncThunk(
 
       params.append("page", page);
       params.append("page_size", pageSize);
-      params.append("query", search);
-
+      if(search) params.append("query", search);
       if (status) params.append("status", status);
       if (payment_status) params.append("payment_status", payment_status);
       if (start_date) params.append("start_date", start_date);

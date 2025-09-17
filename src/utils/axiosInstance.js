@@ -1,5 +1,7 @@
 // src/utils/axiosInstance.js
 import axios from "axios";
+import store from "../store/store";
+import { logout } from "../store/slices/authSlice";
 
 const api = axios.create({
   baseURL: "http://192.168.2.7/",
@@ -85,11 +87,14 @@ api.interceptors.response.use(
       } catch (err) {
         processQueue(err, null);
 
-        // 🚪 If refresh fails → clear storage + redirect login
+        // 🚪 If refresh fails → clear storage and logout via Redux
         localStorage.removeItem("auth");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-        window.location.href = "/"; // Redirect to role selection/login
+
+        // Dispatch logout (will update state, trigger PrivateRoute redirect if needed)
+        store.dispatch(logout());
+
         return Promise.reject(err);
       } finally {
         isRefreshing = false;

@@ -1,12 +1,22 @@
-import React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '../../store/slices/authSlice';
-import { LogOut, Leaf } from 'lucide-react';
+// src/components/Layout/Layout.jsx
+import React from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../../store/slices/authSlice";
+import { LogOut, Leaf } from "lucide-react";
+import { useSendLocation } from "../../hooks/useSendLocation"; 
+import { useRealTimeUpdates } from "../../hooks/useRealTimeUpdates";
 
 const Layout = ({ children, title }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
 
+  const salesmanId = user?.id;
+
+  // ✅ Run location tracking only if role is salesman
+  if (user?.role === "salesman") {
+    useRealTimeUpdates(salesmanId);
+    useSendLocation(salesmanId);
+  }
 
   const handleLogout = () => {
     dispatch(logout());
@@ -14,10 +24,14 @@ const Layout = ({ children, title }) => {
 
   const getRoleColor = (role) => {
     switch (role) {
-      case 'rider': return 'text-emerald-600';
-      case 'dispatcher': return 'text-lime-600';
-      case 'admin': return 'text-green-600';
-      default: return 'text-gray-600';
+      case "salesman":
+        return "text-emerald-600";
+      case "dispatcher":
+        return "text-lime-600";
+      case "admin":
+        return "text-green-600";
+      default:
+        return "text-gray-600";
     }
   };
 

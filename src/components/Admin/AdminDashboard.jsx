@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import Layout from "../Layout/Layout";
 import AllOrders from "./AllOrders";
 import { fetchDashboardStats } from "../../store/slices/dashboardSlice";
 import ProductsPage from "./products/ProductsPage";
 import UsersPage from "./users/UsersPage";
+import MapPage from "./map/MapPage";
 import {
   BarChart3,
   TrendingUp,
@@ -31,24 +32,31 @@ const AdminDashboard = () => {
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [activeTab, setActiveTab] = useState("dashboard"); // NEW
 
-  useEffect(() => {
+const hasFetched = useRef(false);
+
+useEffect(() => {
+  if (!hasFetched.current) {
     dispatch(fetchDashboardStats());
-  }, [dispatch]);
+    hasFetched.current = true;
+  }
+}, [dispatch]);
+
+
 
   // Optional: auto-refresh stats every 30s
-  useEffect(() => {
-    const interval = setInterval(() => {
-      dispatch(fetchDashboardStats());
-      setLastUpdated(new Date());
-    }, 30000);
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     dispatch(fetchDashboardStats());
+  //     setLastUpdated(new Date());
+  //   }, 30000);
 
-    return () => clearInterval(interval);
-  }, [dispatch]);
+  //   return () => clearInterval(interval);
+  // }, [dispatch]);
 
   // Orders filter
-  const pendingOrders = orders.filter((order) => order.status === "pending");
-  const readyOrders = orders.filter((order) => order.status === "ready");
-  const completedOrders = orders.filter((order) => order.status === "delivered");
+  // const pendingOrders = orders.filter((order) => order.status === "pending");
+  // const readyOrders = orders.filter((order) => order.status === "ready");
+  // const completedOrders = orders.filter((order) => order.status === "delivered");
 
   const filteredOrders = orders.filter((order) => {
     const shopName = shops.find((s) => s.id === order.shopId)?.name || "";
@@ -82,7 +90,7 @@ const AdminDashboard = () => {
             <h2 className="text-xl font-bold text-green-600">Admin</h2>
           </div>
           <nav className="p-4 space-y-2">
-            {["dashboard", "users", "products"].map((tab) => (
+            {["dashboard", "users", "products", "map"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -96,6 +104,7 @@ const AdminDashboard = () => {
                   dashboard: <Grid className="h-5 w-5" />,
                   users: <UserPlus className="h-5 w-5" />,
                   products: <ShoppingBag className="h-5 w-5" />,
+                   map: <Layers className="h-5 w-5" />,
                 }[tab]}
                 <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
               </button>
@@ -281,6 +290,9 @@ const AdminDashboard = () => {
           {activeTab === "users" && <UsersPage />}
 
           {activeTab === "products" && <ProductsPage />}
+
+          {activeTab === "map" && <MapPage />}
+
 
         </div>
       </div>

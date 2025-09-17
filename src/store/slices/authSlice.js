@@ -17,6 +17,7 @@ const initialState = {
 };
 
 // ✅ Async thunk for login
+
 export const login = createAsyncThunk(
   "auth/login",
   async ({ identifier, password, role }, { rejectWithValue }) => {
@@ -27,21 +28,16 @@ export const login = createAsyncThunk(
       });
 
       const { access, refresh, user } = response.data;
-
-      // 🔑 Save user + role
       const userData = { ...user, role };
 
-      // 🔑 Save normal tokens
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
 
-      // 🔑 If admin → also save admin tokens
       if (role === "admin") {
         localStorage.setItem("adminAccessToken", access);
         localStorage.setItem("adminRefreshToken", refresh);
       }
 
-      // 🔑 Save auth object
       localStorage.setItem(
         "auth",
         JSON.stringify({ user: userData, isAuthenticated: true })
@@ -55,12 +51,14 @@ export const login = createAsyncThunk(
         adminRefresh: role === "admin" ? refresh : null,
       };
     } catch (err) {
+      // ✅ Always return backend message if available
       return rejectWithValue(
-        err.response?.data?.detail || "Login failed. Please try again."
+        err.response?.data?.detail || err.response?.data?.message || "Login failed"
       );
     }
   }
 );
+
 
 const authSlice = createSlice({
   name: "auth",
@@ -119,7 +117,7 @@ const authSlice = createSlice({
         state.refresh = null;
         state.adminAccess = null;
         state.adminRefresh = null;
-        state.error = action.payload;
+        state.error = action.payload; // ✅ API error message displayed
         state.loading = false;
       });
   },

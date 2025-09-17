@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Leaf, User, Package, Settings } from "lucide-react";
-import { useDispatch } from "react-redux";
 import { useRealTimeUpdates } from "../../hooks/useRealTimeUpdates.js";
 
 const Login = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const [selectedRole, setSelectedRole] = useState("");
   const [enableGPS, setEnableGPS] = useState(false); // ✅ only track GPS if true
 
+  // Role cards
   const roles = [
     {
       id: "salesman",
@@ -37,6 +36,7 @@ const Login = () => {
     },
   ];
 
+  // Tailwind color classes
   const colorClasses = {
     emerald: {
       bg: "bg-emerald-50 hover:bg-emerald-100",
@@ -58,9 +58,10 @@ const Login = () => {
     },
   };
 
+  // Role selection → navigates to /login/:role
   const handleRoleSelect = (roleId) => {
     setSelectedRole(roleId);
-    if (roleId === "salesman") setEnableGPS(true); // ✅ start GPS tracking only for salesman
+    setEnableGPS(roleId === "salesman"); // ✅ only salesman tracks GPS
     navigate(`/login/${roleId}`);
   };
 
@@ -97,10 +98,9 @@ const Login = () => {
                 className={`${colors.bg} ${colors.border} border-2 rounded-2xl p-8 cursor-pointer 
                   transition-all duration-300 transform hover:scale-105 hover:shadow-lg 
                   ${selectedRole === role.id ? "ring-4 ring-green-400" : ""}`}
-                onClick={() => handleRoleSelect(role.id)}
               >
                 <div className="text-center">
-                  <div className={`inline-flex p-4 rounded-xl bg-white shadow-sm mb-6`}>
+                  <div className="inline-flex p-4 rounded-xl bg-white shadow-sm mb-6">
                     <Icon className={`h-8 w-8 ${colors.icon}`} />
                   </div>
 

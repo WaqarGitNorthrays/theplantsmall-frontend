@@ -2,7 +2,6 @@
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { updateSalesmanLocation } from "../store/slices/ridersSlice";
-import { fetchNearbyShops } from "../store/slices/shopsSlice";
 
 export const useRealTimeUpdates = (salesmanId) => {
   const dispatch = useDispatch();
@@ -10,7 +9,7 @@ export const useRealTimeUpdates = (salesmanId) => {
   useEffect(() => {
     if (!salesmanId) return; // 🚫 Skip if no ID provided
     if (!navigator.geolocation) {
-      console.error("❌ Geolocation not supported");
+      console.error("❌ Geolocation not supported in this browser.");
       return;
     }
 
@@ -23,22 +22,30 @@ export const useRealTimeUpdates = (salesmanId) => {
 
       const location = { lat, lng, accuracy };
 
+      // ✅ Save to Redux so other parts of the app can use it
       dispatch(updateSalesmanLocation({ salesmanId, location }));
-      dispatch(fetchNearbyShops(location));
     };
 
     const handleError = (err) => {
-      console.error("GPS error:", err);
+      console.error("❌ GPS error:", err.message);
     };
 
-    const watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, {
-      enableHighAccuracy: true,
-      maximumAge: 5000,
-      timeout: 10000,
-    });
+    // 🔄 Start watching user’s location
+    const watchId = navigator.geolocation.watchPosition(
+      handleSuccess,
+      handleError,
+      {
+        enableHighAccuracy: true,
+        maximumAge: 5000, // allow cached positions up to 5s old
+        timeout: 10000,   // fail if no update within 10s
+      }
+    );
 
+    // 🧹 Clean up on unmount or salesman change
     return () => {
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
     };
   }, [dispatch, salesmanId]);
 };

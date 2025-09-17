@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from "react";
+// src/components/Auth/LoginForm.jsx
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { login } from "../../store/slices/authSlice.js"
+import { login } from "../../store/slices/authSlice.js";
 import { Eye, EyeOff } from "lucide-react";
 
 const LoginForm = () => {
   const { role } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { error, isAuthenticated } = useSelector((state) => state.auth);
 
-  const [identifier, setIdentifier] = useState(""); // ✅ can be email or username
+  // Redux state
+  const { error, loading } = useSelector((state) => state.auth);
+
+  // Local form state
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState("");
@@ -27,19 +31,24 @@ const LoginForm = () => {
     admin: "Admin",
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!identifier || !password) {
       setLocalError("Both email/username and password are required.");
       return;
     }
     setLocalError("");
-    dispatch(login({ identifier, password, role }));
+
+    try {
+      await dispatch(login({ identifier, password, role })).unwrap();
+      navigate(dashboards[role]); // ✅ Only navigate on success
+    } catch {
+      // ❌ Do not parse error again here
+      // Redux error already contains the backend message
+    }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) navigate(dashboards[role]);
-  }, [isAuthenticated, role, navigate]);
+  const displayError = localError || error;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-emerald-50 to-lime-50 p-4">
@@ -51,9 +60,9 @@ const LoginForm = () => {
           Enter your credentials to access your {roleDisplay[role]} dashboard
         </p>
 
-        {(localError || error) && (
+        {displayError && (
           <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 border border-red-200">
-            {localError || error}
+            {displayError}
           </div>
         )}
 
@@ -95,9 +104,10 @@ const LoginForm = () => {
 
           <button
             type="submit"
-            className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition"
+            disabled={loading}
+            className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 

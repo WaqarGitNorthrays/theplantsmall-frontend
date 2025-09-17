@@ -31,6 +31,33 @@ export const addUser = createAsyncThunk(
   }
 );
 
+// Update user
+export const updateUser = createAsyncThunk(
+  "users/updateUser",
+  async ({ id, updates }, { rejectWithValue }) => {
+    try {
+      const res = await api.patch(`auth/api/user/${id}/`, updates);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+// Delete user
+export const deleteUser = createAsyncThunk(
+  "users/deleteUser",
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.delete(`auth/api/user/${id}/`);
+      return id; // return deleted user id
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+
 const usersSlice = createSlice({
   name: "users",
   initialState: {
@@ -70,7 +97,21 @@ const usersSlice = createSlice({
       .addCase(addUser.rejected, (state, action) => {
         state.adding = false;
         state.error = action.payload || action.error.message;
-      });
+      })
+
+      // Update user
+    .addCase(updateUser.fulfilled, (state, action) => {
+      const idx = state.users.findIndex((u) => u.id === action.payload.id);
+      if (idx !== -1) {
+        state.users[idx] = { ...state.users[idx], ...action.payload };
+      }
+    })
+    // Delete user
+    .addCase(deleteUser.fulfilled, (state, action) => {
+      state.users = state.users.filter((u) => u.id !== action.payload);
+      state.count -= 1;
+    })
+
   },
 });
 

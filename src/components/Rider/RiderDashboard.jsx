@@ -7,8 +7,8 @@ import ShopRegistration from "./ShopRegistration";
 import { Store, Plus, MapPin, Edit } from "lucide-react";
 import { useRealTimeUpdates } from "../../hooks/useRealTimeUpdates";
 import { fetchOrders } from "../../store/slices/ordersSlice";
+import { fetchNearbyShops } from "../../store/slices/shopsSlice"; // ✅ import explicitly
 import { formatAddress } from "../../utils/formatAddress";
-
 
 const RiderDashboard = () => {
   const [activeTab, setActiveTab] = useState("shops");
@@ -18,21 +18,42 @@ const RiderDashboard = () => {
   const { user } = useSelector((state) => state.auth);
   const salesmanId = user?.id || "salesman1";
 
+  // ✅ keeps sending location every minute (backend tracking)
   useRealTimeUpdates(salesmanId);
 
   const { nearbyShops, loading, error } = useSelector((state) => state.shops);
   const orders = useSelector((state) => state.orders.orders);
 
   const dispatch = useDispatch();
+
+  // Fetch orders once on mount
   useEffect(() => {
-    dispatch(fetchOrders())
+    dispatch(fetchOrders());
+  }, [dispatch]);
+
+  // ✅ Fetch nearby shops ONLY on initial load/refresh
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude.toFixed(6);
+          const lng = pos.coords.longitude.toFixed(6);
+          dispatch(fetchNearbyShops({ lat, lng }));
+        },
+        (err) => {
+          console.error("Error fetching current location:", err);
+        },
+        { enableHighAccuracy: true }
+      );
+    }
   }, [dispatch]);
 
   const myOrders = orders.filter((order) => {
-  if (String(order.order_taker) === String(salesmanId)) return true;
-  if (String(order.salesmanId) === String(salesmanId)) return true;
-  return false;
-});
+    if (String(order.order_taker) === String(salesmanId)) return true;
+    if (String(order.salesmanId) === String(salesmanId)) return true;
+    return false;
+  });
+
   const handleEditShop = (shop) => {
     setEditingShop(shop);
     setActiveTab("register");
@@ -141,7 +162,6 @@ const RiderDashboard = () => {
                       key={shop.id}
                       className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
                       onClick={(e) => {
-                        // prevent order-taking if user clicked edit
                         if (e.target.closest("button")) return;
                         setSelectedShopId(shop.id);
                         setActiveTab("orderTaking");
@@ -154,9 +174,12 @@ const RiderDashboard = () => {
                           className="w-16 h-16 rounded-lg object-cover"
                         />
                         <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900">{shop.shop_name}</h4>
+                          <h4 className="font-semibold text-gray-900">
+                            {shop.shop_name}
+                          </h4>
                           <p className="text-sm text-gray-500">
-                            Owner: {shop.owner_name || "N/A"} ({shop.owner_phone || "—"})
+                            Owner: {shop.owner_name || "N/A"} (
+                            {shop.owner_phone || "—"})
                           </p>
                           <p className="text-xs text-gray-400 flex items-center mt-1">
                             <MapPin className="h-3 w-3 mr-1" />
@@ -173,7 +196,7 @@ const RiderDashboard = () => {
                           </p>
                           <button
                             onClick={(e) => {
-                              e.stopPropagation(); // stop triggering parent click
+                              e.stopPropagation();
                               handleEditShop(shop);
                             }}
                             className="mt-2 flex items-center text-blue-600 text-xs hover:underline"
@@ -184,7 +207,6 @@ const RiderDashboard = () => {
                       </div>
                     </div>
                   ))}
-
                 </div>
               </div>
             )}

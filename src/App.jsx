@@ -12,15 +12,17 @@ import RiderDashboard from "./components/Rider/RiderDashboard";
 import DispatcherDashboard from "./components/Dispatcher/DispatcherDashboard";
 import AdminDashboard from "./components/Admin/AdminDashboard";
 import OrderHistory from "./components/Rider/Order/OrderHistory";
-import { useRealTimeUpdates } from "./hooks/useRealTimeUpdates";
 
 // ✅ Generic private route (for salesman/dispatcher)
 const PrivateRoute = ({ children, allowedRole }) => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
-  if (!isAuthenticated) return <Navigate to="/" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
-  if (allowedRole && user.role !== allowedRole) {
+  if (allowedRole && user?.role !== allowedRole) {
+    // redirect to the dashboard that matches their role
     return <Navigate to={`/${user.role}-dashboard`} replace />;
   }
 
@@ -40,17 +42,15 @@ const AdminRoute = ({ children }) => {
 };
 
 const AppContent = () => {
-  useRealTimeUpdates();
-
   return (
     <Routes>
-      {/* Public Routes */}
+      {/* -------- PUBLIC ROUTES -------- */}
       <Route path="/" element={<Login />} />
       <Route path="/login/:role" element={<LoginForm />} />
       <Route path="/register/:role" element={<RegisterForm />} />
       <Route path="/verify-email" element={<VerifyEmailForm />} />
 
-      {/* Private Routes */}
+      {/* -------- PROTECTED ROUTES -------- */}
       <Route
         path="/salesman-dashboard"
         element={
@@ -59,6 +59,7 @@ const AppContent = () => {
           </PrivateRoute>
         }
       />
+
       <Route
         path="/dispatcher-dashboard"
         element={
@@ -67,6 +68,7 @@ const AppContent = () => {
           </PrivateRoute>
         }
       />
+
       <Route
         path="/admin-dashboard"
         element={
@@ -76,7 +78,7 @@ const AppContent = () => {
         }
       />
 
-      {/* Salesman Order History */}
+      {/* -------- NESTED PROTECTED ROUTES -------- */}
       <Route
         path="/order-history/:shopId"
         element={
@@ -86,7 +88,7 @@ const AppContent = () => {
         }
       />
 
-      {/* Catch-all */}
+      {/* -------- CATCH-ALL -------- */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

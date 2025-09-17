@@ -89,7 +89,6 @@ adminApi.interceptors.response.use(
         // 🚪 If refresh fails → clear admin tokens + redirect
         localStorage.removeItem("adminAccessToken");
         localStorage.removeItem("adminRefreshToken");
-        window.location.href = "/"; // force re-login
         return Promise.reject(err);
       } finally {
         isRefreshing = false;

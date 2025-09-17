@@ -1,61 +1,59 @@
-import { createSlice } from '@reduxjs/toolkit';
-
-const initialSalesmen = [
-  {
-    id: 'salesman1',
-    name: 'Alex Johnson',
-    phone: '+1555123456',
-    email: 'alex@example.com',
-    location: {
-      lat: 40.7128,
-      lng: -74.0060,
-    },
-    isOnline: true,
-    totalShops: 3,
-    totalOrders: 15,
-  },
-  {
-    id: 'salesman2',
-    name: 'Sarah Wilson',
-    phone: '+1555654321',
-    email: 'sarah@example.com',
-    location: {
-      lat: 40.7589,
-      lng: -73.9851,
-    },
-    isOnline: true,
-    totalShops: 2,
-    totalOrders: 12,
-  },
-];
+// store/slices/ridersSlice.js
+import { createSlice } from "@reduxjs/toolkit";
 
 const salesmenSlice = createSlice({
-  name: 'salesmen',
+  name: "salesmen",
   initialState: {
-    salesmen: initialSalesmen,
-    currentSalesmanLocation: null,
+    salesmen: [], // 🚀 will be filled from backend API later
+    currentSalesmanLocation: null, // ✅ logged-in salesman
   },
   reducers: {
+    // ✅ Update *logged-in* salesman location
     updateSalesmanLocation: (state, action) => {
       const { salesmanId, location } = action.payload;
-      const salesman = state.salesmen.find(s => s.id === salesmanId);
+
+      // update current salesman
+      state.currentSalesmanLocation = location;
+
+      // also update inside salesmen list if present
+      const salesman = state.salesmen.find((s) => s.id === salesmanId);
       if (salesman) {
         salesman.location = location;
-      }
-      if (salesmanId === 'current') {
-        state.currentSalesmanLocation = location;
+        salesman.isOnline = true;
       }
     },
+
+    // ✅ Update salesman stats (shops/orders)
     updateSalesmanStats: (state, action) => {
       const { salesmanId, shops, orders } = action.payload;
-      const salesman = state.salesmen.find(s => s.id === salesmanId);
+      const salesman = state.salesmen.find((s) => s.id === salesmanId);
       if (salesman) {
         salesman.totalShops = shops;
         salesman.totalOrders = orders;
       }
     },
+
+    // ✅ Mark salesman offline
+    setSalesmanOffline: (state, action) => {
+      const salesmanId = action.payload;
+      const salesman = state.salesmen.find((s) => s.id === salesmanId);
+      if (salesman) {
+        salesman.isOnline = false;
+      }
+    },
+
+    // ✅ Replace salesmen list (for admin dashboards, etc.)
+    setSalesmen: (state, action) => {
+      state.salesmen = action.payload;
+    },
   },
 });
 
-export const { updateSalesmanLocation, updateSalesmanStats } = salesmenSlice.actions;
+export const {
+  updateSalesmanLocation,
+  updateSalesmanStats,
+  setSalesmanOffline,
+  setSalesmen,
+} = salesmenSlice.actions;
+
 export default salesmenSlice.reducer;
