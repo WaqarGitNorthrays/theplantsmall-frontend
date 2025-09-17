@@ -1,7 +1,7 @@
 // hooks/useRealTimeUpdates.js
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { updateSalesmanLocation } from "../store/slices/ridersSlice";
+import { updateSalesmanLocation } from "../store/slices/salesmanSlice";
 
 export const useRealTimeUpdates = (salesmanId) => {
   const dispatch = useDispatch();
@@ -9,7 +9,7 @@ export const useRealTimeUpdates = (salesmanId) => {
   useEffect(() => {
     if (!salesmanId) return; // 🚫 Skip if no ID provided
     if (!navigator.geolocation) {
-      console.error("❌ Geolocation not supported in this browser.");
+      console.error("Geolocation not supported in this browser.");
       return;
     }
 
@@ -27,7 +27,7 @@ export const useRealTimeUpdates = (salesmanId) => {
     };
 
     const handleError = (err) => {
-      console.error("❌ GPS error:", err.message);
+      console.error("GPS error:", err.message);
     };
 
     // 🔄 Start watching user’s location

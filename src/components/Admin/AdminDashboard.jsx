@@ -42,22 +42,6 @@ useEffect(() => {
 }, [dispatch]);
 
 
-
-  // Optional: auto-refresh stats every 30s
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     dispatch(fetchDashboardStats());
-  //     setLastUpdated(new Date());
-  //   }, 30000);
-
-  //   return () => clearInterval(interval);
-  // }, [dispatch]);
-
-  // Orders filter
-  // const pendingOrders = orders.filter((order) => order.status === "pending");
-  // const readyOrders = orders.filter((order) => order.status === "ready");
-  // const completedOrders = orders.filter((order) => order.status === "delivered");
-
   const filteredOrders = orders.filter((order) => {
     const shopName = shops.find((s) => s.id === order.shopId)?.name || "";
     return (

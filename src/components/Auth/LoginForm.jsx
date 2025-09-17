@@ -113,13 +113,6 @@ const LoginForm = () => {
 
         <div className="flex justify-between mt-6">
           <button
-            onClick={() => navigate(`/register/${role}`)}
-            className="text-sm text-green-600 hover:underline"
-          >
-            Register New {roleDisplay[role]}
-          </button>
-
-          <button
             onClick={() => navigate("/")}
             className="text-sm text-gray-500 hover:underline"
           >

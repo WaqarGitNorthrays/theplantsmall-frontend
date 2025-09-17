@@ -5,12 +5,14 @@ import api from "../../utils/axiosInstance.js";
 // Fetch users
 export const fetchUsers = createAsyncThunk(
   "users/fetchUsers",
-  async (_, { rejectWithValue }) => {
+  async (pageUrl = "admin_operations/api/staff-users/", { rejectWithValue }) => {
     try {
-      const res = await api.get("admin_operations/api/staff-users/");
+      const res = await api.get(pageUrl);
       return {
         users: res.data.results || [],
         count: res.data.count || 0,
+        next: res.data.next,
+        previous: res.data.previous,
       };
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message);
@@ -57,7 +59,6 @@ export const deleteUser = createAsyncThunk(
   }
 );
 
-
 const usersSlice = createSlice({
   name: "users",
   initialState: {
@@ -66,6 +67,8 @@ const usersSlice = createSlice({
     loading: false,
     adding: false,
     error: null,
+    next: null,
+    previous: null,
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -79,6 +82,8 @@ const usersSlice = createSlice({
         state.loading = false;
         state.users = action.payload.users;
         state.count = action.payload.count;
+        state.next = action.payload.next;
+        state.previous = action.payload.previous;
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.loading = false;
@@ -100,18 +105,17 @@ const usersSlice = createSlice({
       })
 
       // Update user
-    .addCase(updateUser.fulfilled, (state, action) => {
-      const idx = state.users.findIndex((u) => u.id === action.payload.id);
-      if (idx !== -1) {
-        state.users[idx] = { ...state.users[idx], ...action.payload };
-      }
-    })
-    // Delete user
-    .addCase(deleteUser.fulfilled, (state, action) => {
-      state.users = state.users.filter((u) => u.id !== action.payload);
-      state.count -= 1;
-    })
-
+      .addCase(updateUser.fulfilled, (state, action) => {
+        const idx = state.users.findIndex((u) => u.id === action.payload.id);
+        if (idx !== -1) {
+          state.users[idx] = { ...state.users[idx], ...action.payload };
+        }
+      })
+      // Delete user
+      .addCase(deleteUser.fulfilled, (state, action) => {
+        state.users = state.users.filter((u) => u.id !== action.payload);
+        state.count -= 1;
+      });
   },
 });
 

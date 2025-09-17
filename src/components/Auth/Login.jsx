@@ -1,141 +1,113 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Leaf, User, Package, Settings } from "lucide-react";
+import { Leaf, User, Package, Settings, Check } from "lucide-react";
 import { useRealTimeUpdates } from "../../hooks/useRealTimeUpdates.js";
 
 const Login = () => {
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState("");
-  const [enableGPS, setEnableGPS] = useState(false); // ✅ only track GPS if true
+  const [enableGPS, setEnableGPS] = useState(false);
 
-  // Role cards
+  // Role cards with updated data and colors
   const roles = [
     {
       id: "salesman",
       title: "Salesman",
-      description: "Register shops and take orders",
+      description: "Manage client relationships and sales.",
       icon: User,
-      color: "emerald",
+      color: "green",
       features: ["Shop Registration", "Order Taking", "GPS Navigation"],
     },
     {
       id: "dispatcher",
       title: "Dispatcher",
-      description: "Manage and process orders",
+      description: "Coordinate orders and manage deliveries.",
       icon: Package,
-      color: "lime",
-      features: ["Order Management", "Status Updates", "Real-time Monitoring"],
+      color: "amber",
+      features: ["Order Management", "Status Updates", "Real-time Tracking"],
     },
     {
       id: "admin",
       title: "Admin",
-      description: "Monitor all operations",
+      description: "Oversee and optimize business operations.",
       icon: Settings,
-      color: "green",
+      color: "gray",
       features: ["Analytics Dashboard", "System Overview", "Performance Metrics"],
     },
   ];
 
-  // Tailwind color classes
-  const colorClasses = {
-    emerald: {
-      bg: "bg-emerald-50 hover:bg-emerald-100",
-      border: "border-emerald-200 hover:border-emerald-300",
-      text: "text-emerald-600",
-      icon: "text-emerald-500",
-    },
-    lime: {
-      bg: "bg-lime-50 hover:bg-lime-100",
-      border: "border-lime-200 hover:border-lime-300",
-      text: "text-lime-600",
-      icon: "text-lime-500",
-    },
-    green: {
-      bg: "bg-green-50 hover:bg-green-100",
-      border: "border-green-200 hover:border-green-300",
-      text: "text-green-600",
-      icon: "text-green-500",
-    },
-  };
-
-  // Role selection → navigates to /login/:role
+  // Role selection logic remains unchanged
   const handleRoleSelect = (roleId) => {
     setSelectedRole(roleId);
-    setEnableGPS(roleId === "salesman"); // ✅ only salesman tracks GPS
+    setEnableGPS(roleId === "salesman");
     navigate(`/login/${roleId}`);
   };
 
-  // ✅ only activate real-time updates if GPS is enabled
   useRealTimeUpdates(enableGPS ? "salesman1" : null);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-lime-50 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full">
+    <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6 sm:p-12">
+      <div className="w-full max-w-5xl bg-white shadow-xl rounded-2xl p-8 sm:p-12">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
-            <div className="bg-white p-4 rounded-2xl shadow-lg">
-              <Leaf className="h-12 w-12 text-green-600" />
-            </div>
+            <Leaf className="h-16 w-16 text-green-600" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome to Plant Small
+          <h1 className="text-5xl font-extrabold tracking-tight text-gray-900 mb-4">
+            Welcome to <span className="text-green-600">The Plants Mall</span>
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Your comprehensive platform for managing shop registrations, orders, and logistics
+          <p className="text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
+            Your all-in-one platform for managing shop registrations, orders, and logistics.
           </p>
         </div>
 
         {/* Role Selection */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-8">
           {roles.map((role) => {
             const Icon = role.icon;
-            const colors = colorClasses[role.color];
+            const isSelected = selectedRole === role.id;
+            const cardHoverClasses = `transform hover:scale-105 hover:shadow-2xl`;
+
+            let cardClasses = `transition-all duration-300 rounded-xl p-8 border-2 cursor-pointer
+              ${isSelected ? "border-green-600 ring-4 ring-green-200" : "border-gray-200"}
+              ${cardHoverClasses}
+              bg-white shadow-lg`;
 
             return (
               <div
                 key={role.id}
-                className={`${colors.bg} ${colors.border} border-2 rounded-2xl p-8 cursor-pointer 
-                  transition-all duration-300 transform hover:scale-105 hover:shadow-lg 
-                  ${selectedRole === role.id ? "ring-4 ring-green-400" : ""}`}
+                className={cardClasses}
+                onClick={() => handleRoleSelect(role.id)}
               >
-                <div className="text-center">
-                  <div className="inline-flex p-4 rounded-xl bg-white shadow-sm mb-6">
-                    <Icon className={`h-8 w-8 ${colors.icon}`} />
-                  </div>
-
-                  <h3 className={`text-2xl font-bold ${colors.text} mb-3`}>
+                <div className="flex items-center mb-6">
+                  <Icon className={`h-10 w-10 text-gray-800 mr-4`} />
+                  <h3 className="text-2xl font-bold text-gray-800">
                     {role.title}
                   </h3>
-
-                  <p className="text-gray-700 mb-6 text-lg">{role.description}</p>
-
-                  <ul className="space-y-2 mb-8">
-                    {role.features.map((feature, index) => (
-                      <li key={index} className="text-gray-600 text-sm">
-                        • {feature}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <button
-                    type="button"
-                    className={`w-full ${colors.bg} ${colors.text} font-semibold py-3 px-6 rounded-xl border-2 ${colors.border} hover:bg-white transition-colors`}
-                    onClick={() => handleRoleSelect(role.id)}
-                  >
-                    Continue as {role.title}
-                  </button>
                 </div>
+
+                <p className="text-gray-600 mb-6">{role.description}</p>
+
+                <ul className="space-y-3 mb-8">
+                  {role.features.map((feature, index) => (
+                    <li key={index} className="flex items-center text-gray-500">
+                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
+                      <span className="text-base">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  type="button"
+                  className="w-full bg-green-700 text-white font-semibold py-4 px-6 rounded-lg shadow-md transition-colors duration-300
+                    hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                  onClick={() => handleRoleSelect(role.id)}
+                >
+                  {role.title}
+                </button>
               </div>
             );
           })}
-        </div>
-
-        {/* Footer */}
-        <div className="text-center mt-12">
-          <p className="text-gray-500 text-sm">
-            Choose your role to access the login form
-          </p>
         </div>
       </div>
     </div>

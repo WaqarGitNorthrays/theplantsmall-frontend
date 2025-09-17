@@ -1,6 +1,7 @@
+// src/components/orders/OrderHistory.jsx
 import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { Clock, Mic } from "lucide-react";
+import { Clock, Mic, Tag } from "lucide-react";
 import { fetchOrders } from "../../../store/slices/ordersSlice";
 
 const OrderHistory = ({ shopId }) => {
@@ -13,49 +14,94 @@ const OrderHistory = ({ shopId }) => {
 
   const filteredOrders = orders.filter((o) => String(o.shop) === String(shopId));
 
-  if (loading) return <div className="p-4 text-center text-gray-600">Loading orders...</div>;
-  if (error) return <div className="p-4 text-center text-red-600">Failed to load orders: {error}</div>;
-  if (filteredOrders.length === 0) return <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl text-center text-gray-600 text-sm sm:text-base">No previous orders for this shop.</div>;
+  if (loading)
+    return (
+      <div className="p-4 text-center text-gray-600 animate-pulse">
+        <p>Loading orders...</p>
+      </div>
+    );
+  if (error)
+    return (
+      <div className="p-4 text-center text-red-600 bg-red-50 rounded-lg">
+        Failed to load orders: {error}
+      </div>
+    );
+  if (filteredOrders.length === 0)
+    return (
+      <div className="p-6 bg-white border border-gray-200 rounded-2xl shadow-sm text-center text-gray-600 font-medium">
+        No previous orders for this shop.
+      </div>
+    );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {filteredOrders.map((order) => (
-        <div key={order.id} className="p-4 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-          
+        <div
+          key={order.id}
+          className="p-6 bg-white rounded-2xl border-2 border-gray-100 shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1"
+        >
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
-            <h4 className="font-semibold text-gray-900 text-base sm:text-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+            <h4 className="font-bold text-gray-900 text-lg sm:text-xl">
               Order #{order.order_number || order.id}
             </h4>
-            <span className={`text-xs sm:text-sm font-medium px-3 py-1 rounded-full w-max ${order.status === "ready" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+            <span
+              className={`text-xs sm:text-sm font-semibold px-4 py-1 rounded-full w-max 
+                ${
+                  order.status === "ready"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-yellow-100 text-yellow-700"
+                }`}
+            >
               {order.status || "pending"}
             </span>
           </div>
 
           {/* Items */}
           {order.items?.length > 0 && (
-            <ul className="text-sm text-gray-700 mb-3 space-y-1">
-              {order.items.map((item, idx) => (
-                <li key={idx} className="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2">
-                  <span>{item.quantity} × {item.product_name}</span>
-                  <span className="font-medium text-gray-900">
-                    Rs {parseFloat(item.unit_price || item.cotton_price || 0).toFixed(2)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className="mb-4">
+              <h5 className="font-semibold text-gray-800 mb-2 flex items-center">
+                <Tag className="h-4 w-4 mr-2 text-green-600" />
+                Items
+              </h5>
+              <ul className="text-sm text-gray-700 space-y-2">
+                {order.items.map((item, idx) => (
+                  <li
+                    key={idx}
+                    className="flex justify-between items-center bg-gray-50 rounded-lg px-4 py-3"
+                  >
+                    <span>
+                      {item.quantity} × {item.product_name}
+                    </span>
+                    <span className="font-medium text-gray-900">
+                      Rs{" "}
+                      {parseFloat(
+                        item.unit_price || item.cotton_price || 0
+                      ).toFixed(2)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {/* Voice Notes */}
           {order.voice_notes?.length > 0 && (
-            <div className="mb-3">
-              <h5 className="text-sm font-semibold text-gray-800 flex items-center mb-2">
-                <Mic className="h-4 w-4 mr-1 text-green-600" /> Voice Notes
+            <div className="mb-4">
+              <h5 className="font-semibold text-gray-800 flex items-center mb-2">
+                <Mic className="h-4 w-4 mr-2 text-green-600" /> Voice Notes
               </h5>
               <div className="space-y-2">
                 {order.voice_notes.map((note, idx) => (
-                  <div key={idx} className="p-2 bg-gray-50 border border-gray-200 rounded-lg">
-                    <audio controls src={note} className="w-full h-8 sm:h-10" />
+                  <div
+                    key={idx}
+                    className="p-3 bg-gray-50 border border-gray-200 rounded-lg"
+                  >
+                    <audio
+                      controls
+                      src={note}
+                      className="w-full h-8 sm:h-10"
+                    />
                   </div>
                 ))}
               </div>
@@ -63,16 +109,16 @@ const OrderHistory = ({ shopId }) => {
           )}
 
           {/* Footer */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-gray-600 gap-2 mt-2">
-            <span className="font-medium text-gray-800">
-              Total: Rs {parseFloat(order.total_amount || order.total || 0).toFixed(2)}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm gap-2 border-t pt-4 mt-4 border-gray-200">
+            <span className="font-bold text-green-700 text-base">
+              Total: Rs{" "}
+              {parseFloat(order.total_amount || order.total || 0).toFixed(2)}
             </span>
-            <span className="flex items-center text-xs sm:text-sm">
-              <Clock className="inline h-4 w-4 mr-1 text-gray-500" />
+            <span className="flex items-center text-xs sm:text-sm text-gray-500">
+              <Clock className="inline h-4 w-4 mr-1" />
               {new Date(order.created_at || order.createdAt).toLocaleString()}
             </span>
           </div>
-
         </div>
       ))}
     </div>

@@ -14,7 +14,7 @@ const Layout = ({ children, title }) => {
 
   // ✅ Run location tracking only if role is salesman
   if (user?.role === "salesman") {
-    useRealTimeUpdates(salesmanId);
+    useRealTimeUpdates(salesmanId); 
     useSendLocation(salesmanId);
   }
 

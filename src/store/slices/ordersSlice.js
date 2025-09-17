@@ -85,6 +85,36 @@ export const updateOrder = createAsyncThunk(
   }
 );
 
+
+// inside ordersSlice file (imports already present)
+export const assignRiderToOrder = createAsyncThunk(
+  "orders/assignRider",
+  async ({ orderId, riderId }, { rejectWithValue }) => {
+    try {
+      // API expects something like { rider: riderId, status: "ready" } or a separate dispatch endpoint
+      const response = await api.patch(`/plants-mall-orders/api/orders/${orderId}/`, {
+        rider: riderId,
+      });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || "Failed to assign rider");
+    }
+  }
+);
+
+// optionally: a thunk to update status (if you want specific endpoint)
+export const patchOrderStatus = createAsyncThunk(
+  "orders/patchStatus",
+  async ({ orderId, status }, { rejectWithValue }) => {
+    try {
+      const res = await api.patch(`/plants-mall-orders/api/orders/${orderId}/`, { status });
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || "Failed to update status");
+    }
+  }
+);
+
 // -------------------- SLICE --------------------
 const ordersSlice = createSlice({
   name: "orders",
@@ -191,7 +221,25 @@ const ordersSlice = createSlice({
       .addCase(updateOrder.rejected, (state, action) => {
         state.updating = false;
         state.error = action.payload;
-      });
+      })
+
+      // assign rider
+      builder
+      .addCase(assignRiderToOrder.pending, (s) => { s.updating = true; s.error = null; })
+      .addCase(assignRiderToOrder.fulfilled, (s, a) => {
+        s.updating = false;
+        const idx = s.orders.findIndex(o => String(o.id) === String(a.payload.id));
+        if (idx !== -1) s.orders[idx] = a.payload;
+      })
+      .addCase(assignRiderToOrder.rejected, (s, a) => { s.updating = false; s.error = a.payload; })
+
+      .addCase(patchOrderStatus.pending, (s) => { s.updating = true; s.error = null; })
+      .addCase(patchOrderStatus.fulfilled, (s, a) => {
+        s.updating = false;
+        const idx = s.orders.findIndex(o => String(o.id) === String(a.payload.id));
+        if (idx !== -1) s.orders[idx] = a.payload;
+      })
+      .addCase(patchOrderStatus.rejected, (s, a) => { s.updating = false; s.error = a.payload; });
   },
 });
 

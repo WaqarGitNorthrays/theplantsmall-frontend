@@ -1,20 +1,21 @@
 // src/components/common/GpsCapture.jsx
 import React, { useState, useEffect, useRef } from "react";
-import { MapPin, ExternalLink, Loader2 } from "lucide-react";
+import { MapPin, ExternalLink, Loader2, RefreshCcw } from "lucide-react";
 import { formatAddress } from "../../utils/formatAddress";
 
-const GpsCapture = ({ onLocationCaptured }) => {
-  const [gps, setGps] = useState({
-    status: "not_captured",
-    lat: null,
-    lng: null,
-    accuracy: null,
-    address: null,
-  });
+const GpsCapture = ({ onLocationCaptured, initialGps }) => {
+  const [gps, setGps] = useState(
+    initialGps || {
+      status: "pending",
+      lat: null,
+      lng: null,
+      accuracy: null,
+      address: null,
+    }
+  );
 
   const watchIdRef = useRef(null);
-  const timeoutRef = useRef(null);
-  const retryRef = useRef(false); // ✅ track if we already retried
+  const isMounted = useRef(false);
 
   // --- Reverse geocode ---
   const fetchAddress = async (lat, lng) => {
@@ -35,7 +36,11 @@ const GpsCapture = ({ onLocationCaptured }) => {
 
   // --- Update GPS state ---
   const updateLocation = async (pos) => {
-    clearTimeout(timeoutRef.current);
+    // Only update if the new location has better accuracy
+    if (gps.status === "ready" && pos.coords.accuracy > gps.accuracy) {
+      return;
+    }
+
     const { latitude, longitude, accuracy } = pos.coords;
     const address = await fetchAddress(latitude, longitude);
 
@@ -50,77 +55,71 @@ const GpsCapture = ({ onLocationCaptured }) => {
     setGps(updatedLocation);
     if (onLocationCaptured) onLocationCaptured(updatedLocation);
   };
-
-  // --- Start watching continuously ---
-  const startWatchingGPS = () => {
-    if (!navigator.geolocation) return;
-
+  
+  // --- Start watching for location continuously ---
+  const startWatching = () => {
+    if (!navigator.geolocation) {
+      setGps((g) => ({ ...g, status: "error" }));
+      return;
+    }
+    stopWatching();
     watchIdRef.current = navigator.geolocation.watchPosition(
-      updateLocation,
+      (pos) => updateLocation(pos),
       (err) => {
         console.error("GPS watch error:", err);
         setGps((g) => ({ ...g, status: "error" }));
       },
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000,
+        timeout: 20000,
+      }
     );
   };
 
   // --- Stop watching ---
-  const stopWatchingGPS = () => {
+  const stopWatching = () => {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
   };
-
-  // --- Capture once, with timeout + retry ---
-  const captureFastGPS = () => {
+  
+  // --- Capture once for a quick fix, then watch if needed ---
+  const captureGPS = () => {
+    setGps((g) => ({ ...g, status: "capturing" }));
     if (!navigator.geolocation) {
       setGps((g) => ({ ...g, status: "error" }));
       return;
     }
-
-    setGps((g) => ({ ...g, status: "capturing" }));
-
-    timeoutRef.current = setTimeout(() => {
-      console.warn("GPS timeout — no response within 10s");
-      stopWatchingGPS();
-
-      if (!retryRef.current) {
-        retryRef.current = true;
-        console.log("Retrying GPS once after timeout...");
-        captureFastGPS();
-        startWatchingGPS();
-      } else {
-        setGps((g) => ({ ...g, status: "timeout" }));
-      }
-    }, 10000);
-
+    
+    // First, try a quick, one-time capture
     navigator.geolocation.getCurrentPosition(
-      (pos) => updateLocation(pos),
-      (err) => {
-        console.error("Fast GPS error:", err);
-        startWatchingGPS();
+      (pos) => {
+        // If a good position is found, use it and stop here
+        updateLocation(pos);
+        stopWatching(); 
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
+      (err) => {
+        console.warn("Quick GPS capture failed, falling back to continuous watching:", err);
+        startWatching(); // Fallback to continuous watching on failure
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000, // Shorter timeout for a fast fix
+        maximumAge: 0,
+      }
     );
   };
 
-  // --- Manual capture button ---
-  const captureGPS = () => {
-    stopWatchingGPS();
-    retryRef.current = false;
-    captureFastGPS();
-    startWatchingGPS();
-  };
-
-  // --- Auto-capture on mount ---
+  // --- Initial capture and cleanup ---
   useEffect(() => {
+    isMounted.current = true;
     captureGPS();
-
+    
     return () => {
-      stopWatchingGPS();
-      clearTimeout(timeoutRef.current);
+      isMounted.current = false;
+      stopWatching();
     };
   }, []);
 
@@ -134,22 +133,30 @@ const GpsCapture = ({ onLocationCaptured }) => {
             <h3 className="text-sm font-semibold text-gray-900">GPS Location</h3>
           </div>
           <p className="text-xs text-gray-700 mt-2 flex items-center gap-2">
-            {gps.status === "ready" && (gps.address || "Fetching address…")}
+            {gps.status === "ready" && (
+              <>
+                {gps.address || "Fetching address…"}
+                {gps.accuracy && (
+                  <span className="text-[10px] text-green-600 ml-2">
+                    ±{gps.accuracy.toFixed(1)}m
+                  </span>
+                )}
+              </>
+            )}
             {gps.status === "capturing" && (
               <>
                 <Loader2 className="h-3 w-3 animate-spin text-green-600" />
                 Capturing location…
               </>
             )}
-            {gps.status === "timeout" && "GPS timeout — try again."}
+            {gps.status === "pending" && "Ready to capture location."}
             {gps.status === "error" &&
               "Unable to capture location — allow location access in your browser."}
-            {gps.status === "not_captured" && "Not captured yet."}
           </p>
 
           {gps.status === "ready" && (
             <a
-              href={`https://www.google.com/maps?q=${gps.lat},${gps.lng}`}
+              href={`http://maps.google.com/maps?q=${gps.lat},${gps.lng}`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-2 inline-flex items-center text-xs text-green-700 hover:underline"
@@ -165,16 +172,14 @@ const GpsCapture = ({ onLocationCaptured }) => {
             <button
               type="button"
               onClick={captureGPS}
-              className="px-3 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700"
+              className={`px-3 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed`}
+              disabled={gps.status === 'capturing'}
+              aria-label="Refresh shops"
             >
-              Capture GPS
+              <RefreshCcw className={`h-4 w-4 mr-2 inline ${gps.status === 'capturing' ? 'animate-spin' : ''}`} />
+              Refresh GPS
             </button>
           </div>
-          {gps.status === "ready" && (
-            <p className="text-xs text-gray-600">
-              Location is being tracked in real time
-            </p>
-          )}
         </div>
       </div>
     </div>

@@ -4,8 +4,8 @@ import { createSlice } from "@reduxjs/toolkit";
 const salesmenSlice = createSlice({
   name: "salesmen",
   initialState: {
-    salesmen: [], // 🚀 will be filled from backend API later
-    currentSalesmanLocation: null, // ✅ logged-in salesman
+    salesmen: [], 
+    currentSalesmanLocation: null, //logged-in salesman
   },
   reducers: {
     // ✅ Update *logged-in* salesman location

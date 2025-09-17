@@ -1,4 +1,3 @@
-// src/components/admin/StatusModal.jsx
 import { useEffect, useState } from "react";
 import api from "../../utils/axiosInstance";
 
@@ -27,7 +26,7 @@ export default function StatusModal({ order, newStatus, onClose, onConfirm }) {
     }
     onConfirm({
       status: newStatus,
-      ...(newStatus === "confirmed" ? { dispatcher_id: selectedDispatcher } : {}),
+      ...(newStatus === "confirmed" ? { dispatcher: selectedDispatcher } : {}),
     });
   };
 
