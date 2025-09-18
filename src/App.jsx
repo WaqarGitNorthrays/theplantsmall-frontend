@@ -1,6 +1,6 @@
 // src/App.jsx
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {Routes, Route, Navigate } from "react-router-dom";
 import { Provider, useSelector } from "react-redux";
 import store from "./store/store";
 
@@ -97,9 +97,7 @@ const AppContent = () => {
 function App() {
   return (
     <Provider store={store}>
-      <Router>
         <AppContent />
-      </Router>
     </Provider>
   );
 }
