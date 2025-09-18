@@ -353,35 +353,70 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
       formData.voiceNotes.forEach((n) => payload.append("voice_notes", n.blob));
       if (formData.deletedVoiceNotes.length) payload.append("delete_voice_notes", JSON.stringify(formData.deletedVoiceNotes));
     }
-    try {
-      let res;
-      if (mode === "edit" && shop?.id) {
-        res = await api.put(`plants-mall-shops/api/shops/${shop.id}/edit/`, payload, { headers: { "Content-Type": "multipart/form-data" } });
-        dispatch(updateShop(res.data));
-        // Reset blobs but keep shop data
-        // setFormData((prev) => ({
-        //   ...prev,
-        //   frontImage: null,
-        //   insideImages: [],
-        //   deletedInsideImages: [],
-        //   voiceNotes: [],
-        //   deletedVoiceNotes: [],
-        // }));
-        resetForm();
-      } else {
-        res = await api.post(`plants-mall-shops/api/shops/create/`, payload, { headers: { "Content-Type": "multipart/form-data" } });
-        dispatch(addShop(res.data));
-        resetForm();
-      }
+try {
+  let res;
+  if (mode === "edit" && shop?.id) {
+    res = await api.put(
+      `plants-mall-shops/api/shops/${shop.id}/edit/`,
+      payload,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    dispatch(updateShop(res.data));
+    resetForm();
+  } else {
+    res = await api.post(
+      `plants-mall-shops/api/shops/create/`,
+      payload,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    dispatch(addShop(res.data));
+    resetForm();
+  }
 
-      setAlert({ message: `Shop ${mode === "edit" ? "updated" : "registered"} successfully!`, type: "success", visible: true });
-      if (onSuccess) onSuccess();
-    } catch (err) {
-      console.error("❌ Shop submission failed:", err);
-      setAlert({ message: "Failed to submit shop. Please try again.", type: "error", visible: true });
-    } finally {
-      setLoading(false);
+  setAlert({
+    message: `Shop ${mode === "edit" ? "updated" : "registered"} successfully!`,
+    type: "success",
+    visible: true,
+  });
+
+  if (onSuccess) onSuccess();
+} catch (err) {
+  console.error("❌ Shop submission failed:", err);
+
+  if (err.response?.data) {
+    // Backend returned validation errors
+    const errors = err.response.data;
+
+    // If backend sends { "field": ["error1", "error2"] }
+    let errorMessages = [];
+    if (typeof errors === "object") {
+      for (const key in errors) {
+        if (Array.isArray(errors[key])) {
+          errorMessages.push(`${key}: ${errors[key].join(", ")}`);
+        } else {
+          errorMessages.push(`${key}: ${errors[key]}`);
+        }
+      }
+    } else {
+      errorMessages.push("Something went wrong.");
     }
+
+    setAlert({
+      message: errorMessages.join("\n"),
+      type: "error",
+      visible: true,
+    });
+  } else {
+    setAlert({
+      message: "Failed to submit shop. Please try again.",
+      type: "error",
+      visible: true,
+    });
+  }
+} finally {
+  setLoading(false);
+}
+
   };
 
   return (

@@ -12,10 +12,6 @@ import {
   Store,
   Trash2,
   X,
-  Package,
-  Ruler,
-  DollarSign,
-  PoundSterling,
   CheckCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
@@ -58,6 +54,8 @@ const OrderTaking = ({ shopId }) => {
 
   const [isRecording, setIsRecording] = useState(false);
   const [isExtraRecording, setIsExtraRecording] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -154,7 +152,7 @@ const OrderTaking = ({ shopId }) => {
       setSelectedCotton(null);
       setMinPrice(0);
     } else {
-      toast.error("⚠️ Please select product, size and quantity");
+      toast.error("Please select product, size and quantity");
     }
   };
 
@@ -239,7 +237,7 @@ const OrderTaking = ({ shopId }) => {
       mediaRecorderExtraRef.current.start();
       setIsExtraRecording(true);
     } catch (err) {
-      console.error("❌ Mic error:", err);
+      console.error("Mic error:", err);
       toast.error("Microphone access failed. Please allow permission.");
     }
   };
@@ -304,7 +302,7 @@ const OrderTaking = ({ shopId }) => {
   // Submit order
   const handleSubmitOrder = async () => {
     if (!shopId || !selectedShop) {
-      toast.error("⚠️ No shop found. Please go back and select a shop.");
+      toast.error("No shop found. Please go back and select a shop.");
       return;
     }
 
@@ -368,8 +366,8 @@ const OrderTaking = ({ shopId }) => {
     formData.append(
       "location",
       JSON.stringify({
-        lat: gpsData.lat,
-        lng: gpsData.lng,
+        latitude: gpsData.lat,
+        longitude: gpsData.lng,
         accuracy: gpsData.accuracy,
       })
     );
@@ -381,6 +379,7 @@ const OrderTaking = ({ shopId }) => {
     }
 
     try {
+      setSubmitting(true); // start loader
       const response = await dispatch(submitorder(formData)).unwrap();
       console.log("Backend response:", response);
 
@@ -401,6 +400,9 @@ const OrderTaking = ({ shopId }) => {
         err?.non_field_errors?.[0] ||
         "Failed to submit order. Please try again.";
       toast.error(message);
+    }
+    finally{
+        setSubmitting(false); 
     }
   };
 
@@ -771,11 +773,46 @@ const OrderTaking = ({ shopId }) => {
             {/* 📤 Submit Button */}
             <button
               onClick={handleSubmitOrder}
-              className="w-full px-6 py-4 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700 transition-colors text-lg font-semibold mt-6 flex items-center justify-center"
+              disabled={submitting}
+              className={`w-full px-6 py-4 rounded-lg shadow-lg transition-colors text-lg font-semibold mt-6 flex items-center justify-center
+                ${
+                  submitting
+                    ? "bg-green-800 cursor-not-allowed"
+                    : "bg-green-600 text-white hover:bg-green-700"
+                }`}
             >
-              <CheckCircle className="h-6 w-6 mr-2" />
-              Submit Order
+              {submitting ? (
+                <>
+                  <svg
+                    className="animate-spin h-6 w-6 mr-3 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8H4z"
+                    ></path>
+                  </svg>
+                  <span className="text-white">Submitting Order...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-6 w-6 mr-3" />
+                  Submit Order
+                </>
+              )}
             </button>
+
           </div>
         </>
       ) : (

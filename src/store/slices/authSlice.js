@@ -16,7 +16,7 @@ const initialState = {
   loading: false,
 };
 
-// ✅ Async thunk for login
+//Async thunk for login
 
 export const login = createAsyncThunk(
   "auth/login",
@@ -27,7 +27,7 @@ export const login = createAsyncThunk(
         password,
       });
 
-      const { access, refresh, user } = response.data;
+      const { access, refresh, user } = response.data; 
       const userData = { ...user, role };
 
       localStorage.setItem("accessToken", access);
@@ -50,10 +50,11 @@ export const login = createAsyncThunk(
         adminAccess: role === "admin" ? access : null,
         adminRefresh: role === "admin" ? refresh : null,
       };
-    } catch (err) {
-      // ✅ Always return backend message if available
+    } catch(error) {
       return rejectWithValue(
-        err.response?.data?.detail || err.response?.data?.message || "Login failed"
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        "Login failed"
       );
     }
   }

@@ -44,14 +44,13 @@ export const fetchOrders = createAsyncThunk(
       start_date,
       end_date,
     } = {},
-    { rejectWithValue, getState } // ✅ added getState
+    { rejectWithValue }
   ) => {
     try {
       const params = new URLSearchParams();
-
       params.append("page", page);
       params.append("page_size", pageSize);
-      if(search) params.append("query", search);
+      if (search) params.append("query", search);
       if (status) params.append("status", status);
       if (payment_status) params.append("payment_status", payment_status);
       if (start_date) params.append("start_date", start_date);
@@ -68,8 +67,7 @@ export const fetchOrders = createAsyncThunk(
   }
 );
 
-
-// -------------------- UPDATE ORDER (status / payment) --------------------
+// -------------------- UPDATE ORDER --------------------
 export const updateOrder = createAsyncThunk(
   "orders/updateOrder",
   async ({ orderId, updates }, { rejectWithValue }) => {
@@ -85,16 +83,15 @@ export const updateOrder = createAsyncThunk(
   }
 );
 
-
-// inside ordersSlice file (imports already present)
+// -------------------- ASSIGN RIDER --------------------
 export const assignRiderToOrder = createAsyncThunk(
   "orders/assignRider",
   async ({ orderId, riderId }, { rejectWithValue }) => {
     try {
-      // API expects something like { rider: riderId, status: "ready" } or a separate dispatch endpoint
-      const response = await api.patch(`/plants-mall-orders/api/orders/${orderId}/`, {
-        rider: riderId,
-      });
+      const response = await api.patch(
+        `/plants-mall-orders/api/orders/${orderId}/`,
+        { rider: riderId }
+      );
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || "Failed to assign rider");
@@ -102,12 +99,15 @@ export const assignRiderToOrder = createAsyncThunk(
   }
 );
 
-// optionally: a thunk to update status (if you want specific endpoint)
+// -------------------- PATCH STATUS --------------------
 export const patchOrderStatus = createAsyncThunk(
   "orders/patchStatus",
   async ({ orderId, status }, { rejectWithValue }) => {
     try {
-      const res = await api.patch(`/plants-mall-orders/api/orders/${orderId}/`, { status });
+      const res = await api.patch(
+        `/plants-mall-orders/api/orders/${orderId}/`,
+        { status }
+      );
       return res.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || "Failed to update status");
@@ -131,7 +131,6 @@ const ordersSlice = createSlice({
   },
 
   reducers: {
-    // Optimistic local add
     addOrder: (state, action) => {
       state.orders.push({
         ...action.payload,
@@ -142,17 +141,16 @@ const ordersSlice = createSlice({
       });
     },
 
-    // Local update status
     updateOrderStatus: (state, action) => {
       const { orderId, status } = action.payload;
-      const order = state.orders.find((o) => o.id === orderId);
-      if (order) {
-        order.status = status;
-      }
+      const order = state.orders.find((o) => String(o.id) === String(orderId));
+      if (order) order.status = status;
     },
 
     markOrderReady: (state, action) => {
-      const order = state.orders.find((o) => o.id === action.payload);
+      const order = state.orders.find(
+        (o) => String(o.id) === String(action.payload)
+      );
       if (order) {
         order.status = "ready";
         order.readyAt = new Date().toISOString();
@@ -161,7 +159,7 @@ const ordersSlice = createSlice({
 
     addVoiceNote: (state, action) => {
       const { orderId, note } = action.payload;
-      const order = state.orders.find((o) => o.id === orderId);
+      const order = state.orders.find((o) => String(o.id) === String(orderId));
       if (order) {
         if (!order.voiceNotes) order.voiceNotes = [];
         order.voiceNotes.push(note);
@@ -175,71 +173,100 @@ const ordersSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-      // create order
-      .addCase(submitorder.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      // submit order
+      .addCase(submitorder.pending, (s) => {
+        s.loading = true;
+        s.error = null;
       })
-      .addCase(submitorder.fulfilled, (state, action) => {
-        state.loading = false;
-        state.orders.push(action.payload);
+      .addCase(submitorder.fulfilled, (s, a) => {
+        s.loading = false;
+        s.orders.unshift(a.payload); // newest first
       })
-      .addCase(submitorder.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
+      .addCase(submitorder.rejected, (s, a) => {
+        s.loading = false;
+        s.error = a.payload;
       })
 
       // fetch orders
-      .addCase(fetchOrders.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      .addCase(fetchOrders.pending, (s) => {
+        s.loading = true;
+        s.error = null;
       })
-      .addCase(fetchOrders.fulfilled, (state, action) => {
-        state.loading = false;
-        state.orders = action.payload.results;
-        state.count = action.payload.count;
-        state.next = action.payload.next;
-        state.previous = action.payload.previous;
+      .addCase(fetchOrders.fulfilled, (s, a) => {
+        s.loading = false;
+        const payload = a.payload;
+
+        if (Array.isArray(payload)) {
+          // If API just returns an array
+          s.orders = s.page > 1 ? [...s.orders, ...payload] : payload;
+          s.count = payload.length;
+          s.next = null;
+          s.previous = null;
+        } else {
+          const newOrders = payload?.results || [];
+          s.orders = s.page > 1 ? [...s.orders, ...newOrders] : newOrders;
+          s.count = payload?.count ?? 0;
+          s.next = payload?.next ?? null;
+          s.previous = payload?.previous ?? null;
+        }
       })
-      .addCase(fetchOrders.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
+      .addCase(fetchOrders.rejected, (s, a) => {
+        s.loading = false;
+        s.error = a.payload;
       })
 
       // update order
-      .addCase(updateOrder.pending, (state) => {
-        state.updating = true;
-        state.error = null;
+      .addCase(updateOrder.pending, (s) => {
+        s.updating = true;
+        s.error = null;
       })
-      .addCase(updateOrder.fulfilled, (state, action) => {
-        state.updating = false;
-        const idx = state.orders.findIndex((o) => o.id === action.payload.id);
+      .addCase(updateOrder.fulfilled, (s, a) => {
+        s.updating = false;
+        const idx = s.orders.findIndex(
+          (o) => String(o.id) === String(a.payload.id)
+        );
         if (idx !== -1) {
-          state.orders[idx] = action.payload;
+          s.orders[idx] = { ...s.orders[idx], ...a.payload };
         }
       })
-      .addCase(updateOrder.rejected, (state, action) => {
-        state.updating = false;
-        state.error = action.payload;
+      .addCase(updateOrder.rejected, (s, a) => {
+        s.updating = false;
+        s.error = a.payload;
       })
 
       // assign rider
-      builder
-      .addCase(assignRiderToOrder.pending, (s) => { s.updating = true; s.error = null; })
+      .addCase(assignRiderToOrder.pending, (s) => {
+        s.updating = true;
+        s.error = null;
+      })
       .addCase(assignRiderToOrder.fulfilled, (s, a) => {
         s.updating = false;
-        const idx = s.orders.findIndex(o => String(o.id) === String(a.payload.id));
-        if (idx !== -1) s.orders[idx] = a.payload;
+        const idx = s.orders.findIndex(
+          (o) => String(o.id) === String(a.payload.id)
+        );
+        if (idx !== -1) s.orders[idx] = { ...s.orders[idx], ...a.payload };
       })
-      .addCase(assignRiderToOrder.rejected, (s, a) => { s.updating = false; s.error = a.payload; })
+      .addCase(assignRiderToOrder.rejected, (s, a) => {
+        s.updating = false;
+        s.error = a.payload;
+      })
 
-      .addCase(patchOrderStatus.pending, (s) => { s.updating = true; s.error = null; })
+      // patch status
+      .addCase(patchOrderStatus.pending, (s) => {
+        s.updating = true;
+        s.error = null;
+      })
       .addCase(patchOrderStatus.fulfilled, (s, a) => {
         s.updating = false;
-        const idx = s.orders.findIndex(o => String(o.id) === String(a.payload.id));
-        if (idx !== -1) s.orders[idx] = a.payload;
+        const idx = s.orders.findIndex(
+          (o) => String(o.id) === String(a.payload.id)
+        );
+        if (idx !== -1) s.orders[idx] = { ...s.orders[idx], ...a.payload };
       })
-      .addCase(patchOrderStatus.rejected, (s, a) => { s.updating = false; s.error = a.payload; });
+      .addCase(patchOrderStatus.rejected, (s, a) => {
+        s.updating = false;
+        s.error = a.payload;
+      });
   },
 });
 

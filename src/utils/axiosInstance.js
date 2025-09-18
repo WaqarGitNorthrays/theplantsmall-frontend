@@ -1,10 +1,15 @@
 // src/utils/axiosInstance.js
 import axios from "axios";
-import store from "../store/store";
 import { logout } from "../store/slices/authSlice";
 
+let appStore;
+export const injectStore = (_store) => {
+  appStore = _store;
+};
+
+
 const api = axios.create({
-  baseURL: "https://cc816f6f81ad.ngrok-free.app/",
+  baseURL: "http://192.168.2.7/",
   headers: {
     // "Content-Type": "application/json",
   },
@@ -44,10 +49,13 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If Unauthorized and not already retrying
+    // 🚨 If this is login or refresh request, don't try refresh
+    if (originalRequest.url.includes("/auth/api/login/") || originalRequest.url.includes("/auth/api/refresh/")) {
+      return Promise.reject(error); // pass backend error directly
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // Queue failed requests until refresh finishes
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -63,47 +71,35 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem("refreshToken");
-
         if (!refreshToken) {
-          throw new Error("No refresh token available");
+          return Promise.reject(error); // ✅ send backend error instead of throwing
         }
 
-        // 🔑 Call refresh endpoint
         const { data } = await axios.post("http://192.168.2.7/auth/api/refresh/", {
           refresh: refreshToken,
         });
 
         const newAccessToken = data.access;
-
-        // Save new access token
         localStorage.setItem("accessToken", newAccessToken);
-
-        // Update queued requests
         processQueue(null, newAccessToken);
 
-        // Retry original request with new token
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch (err) {
         processQueue(err, null);
-
-        // 🚪 If refresh fails → clear storage and logout via Redux
         localStorage.removeItem("auth");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-
-        // Dispatch logout (will update state, trigger PrivateRoute redirect if needed)
-        store.dispatch(logout());
-
+        appStore?.dispatch(logout());
         return Promise.reject(err);
       } finally {
         isRefreshing = false;
       }
     }
 
-    console.error("API error:", error.response?.data || error.message);
     return Promise.reject(error);
   }
 );
+
 
 export default api;

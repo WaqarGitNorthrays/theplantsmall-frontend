@@ -11,9 +11,9 @@ export const useSendLocation = (salesmanId) => {
         async (position) => {
           const { latitude, longitude } = position.coords;
           try {
-            // 🔄 Fetch human-readable address
+            // Fetch human-readable address
             const address = await fetchAddress(latitude, longitude);
-            // 🚀 Send everything to backend
+            // Send everything to backend
             const res = await api.post("/plants-mall-shops/api/update-locations/", {
               identifier: salesmanId,
               lat: latitude,

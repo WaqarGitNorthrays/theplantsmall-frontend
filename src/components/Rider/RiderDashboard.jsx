@@ -23,7 +23,7 @@ const RiderDashboard = () => {
   useRealTimeUpdates(salesmanId);
 
   const { nearbyShops, loading, error } = useSelector((state) => state.shops);
-  const orders = useSelector((state) => state.orders.orders);
+  const orders = useSelector((state) => state.orders.orders) || [];
 
   const dispatch = useDispatch();
 

@@ -49,7 +49,7 @@ export default function DispatcherDashboard() {
     dispatch(fetchRiders());
   }, [dispatch, page, pageSize]);
 
-  const filteredOrders = orders.filter((order) => {
+  const filteredOrders = (orders || []).filter((order) => {
     if (filter === "all") return true;
     return order.status === filter;
   });
