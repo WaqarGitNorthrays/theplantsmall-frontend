@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const adminApi = axios.create({
-  baseURL: "http://192.168.2.7/",
+  baseURL: "https://cc816f6f81ad.ngrok-free.app/",
   headers: {
     "Content-Type": "application/json",
   },
