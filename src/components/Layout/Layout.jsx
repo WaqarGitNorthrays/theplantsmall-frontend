@@ -45,7 +45,7 @@ const Layout = ({ children, title }) => {
                 <Leaf className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">The Plant Small</h1>
+                <h1 className="text-xl font-semibold text-gray-900">The Plants Mall</h1>
                 {title && <p className="text-sm text-gray-500">{title}</p>}
               </div>
             </div>

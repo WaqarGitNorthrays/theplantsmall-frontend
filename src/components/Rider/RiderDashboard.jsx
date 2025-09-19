@@ -7,6 +7,7 @@ import ShopRegistration from "./ShopRegistration";
 import { Store, Plus, MapPin, Edit, RefreshCcw } from "lucide-react";
 import { useRealTimeUpdates } from "../../hooks/useRealTimeUpdates";
 import { fetchOrders } from "../../store/slices/ordersSlice";
+import { fetchSalesmanStats } from "../../store/slices/salesmanSlice";
 import { fetchNearbyShops } from "../../store/slices/shopsSlice";
 import { formatAddress } from "../../utils/formatAddress";
 
@@ -16,7 +17,7 @@ const RiderDashboard = () => {
   const [editingShop, setEditingShop] = useState(null);
 
   const { user } = useSelector((state) => state.auth);
-  const { currentSalesmanLocation } = useSelector((state) => state.salesmen);
+  const { currentSalesmanLocation, stats, statsLoading, statsError } = useSelector((state) => state.salesmen);
   const salesmanId = user?.id;
 
   // ✅ Keeps sending location for backend tracking
@@ -27,9 +28,10 @@ const RiderDashboard = () => {
 
   const dispatch = useDispatch();
 
-  // Fetch orders once on mount
+  // Fetch orders and salesman stats once on mount
   useEffect(() => {
     dispatch(fetchOrders());
+    dispatch(fetchSalesmanStats());
   }, [dispatch]);
 
   // ✅ New function to manually fetch shops
@@ -84,7 +86,7 @@ const RiderDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Shops</p>
                 <p className="text-3xl font-bold text-green-600">
-                  {nearbyShops.length}
+                  {statsLoading ? "..." : stats.total_shops_by_user}
                 </p>
               </div>
               <Store className="h-12 w-12 text-green-500" />
@@ -96,10 +98,22 @@ const RiderDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Orders</p>
                 <p className="text-3xl font-bold text-emerald-600">
-                  {myOrders.length}
+                  {statsLoading ? "..." : stats.total_orders}
                 </p>
               </div>
               <Store className="h-12 w-12 text-emerald-500" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Today's Orders</p>
+                <p className="text-3xl font-bold text-blue-600">
+                  {statsLoading ? "..." : stats.today_orders}
+                </p>
+              </div>
+              <Store className="h-12 w-12 text-blue-500" />
             </div>
           </div>
         </div>

@@ -221,19 +221,31 @@ const UsersModal = ({ user, onClose }) => {
             <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
               Role
             </label>
-            <select
-              name="role"
-              id="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="w-full border border-gray-300 px-4 py-2 rounded-lg shadow-sm focus:ring-emerald-400 focus:border-emerald-400 transition-all duration-200"
-            >
-              {ROLE_OPTIONS.map((role) => (
-                <option key={role.value} value={role.value}>
-                  {role.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                  <path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-4.418 0-8 1.79-8 4v2a1 1 0 001 1h14a1 1 0 001-1v-2c0-2.21-3.582-4-8-4z" fill="currentColor" />
+                </svg>
+              </span>
+              <select
+                name="role"
+                id="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full border border-gray-300 pl-10 pr-4 py-2 rounded-lg shadow-sm focus:ring-emerald-400 focus:border-emerald-400 transition-all duration-200 appearance-none"
+              >
+                {ROLE_OPTIONS.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
+              </select>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                  <path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </div>
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">

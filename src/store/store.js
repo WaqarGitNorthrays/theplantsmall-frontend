@@ -9,6 +9,7 @@ import usersSlice from './slices/usersSlice';
 import riderSlice from './slices/riderSlice';
 import dispatcherStatsSlice from './slices/dispatcherStatsSlice';
 import { injectStore } from '../utils/axiosInstance';
+import deliveryRiderStatsSlice from './slices/deliveryRiderStatsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -21,6 +22,7 @@ export const store = configureStore({
     users: usersSlice,
     riders: riderSlice,
     dispatcherStats: dispatcherStatsSlice,
+    deliveryRiderStats: deliveryRiderStatsSlice,
   },
 });
 

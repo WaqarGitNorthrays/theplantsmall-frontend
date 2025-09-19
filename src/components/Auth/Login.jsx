@@ -34,6 +34,14 @@ const Login = () => {
       color: "gray",
       features: ["Analytics Dashboard", "System Overview", "Performance Metrics"],
     },
+    {
+      id: "delivery",
+      title: "Delivery Rider",
+      description: "Handle order deliveries efficiently.",
+      icon: Package,
+      color: "blue",
+      features: ["Route Optimization", "Delivery Status", "Customer Communication"],
+    }
   ];
 
   // Role selection logic remains unchanged
@@ -80,7 +88,7 @@ const Login = () => {
                 onClick={() => handleRoleSelect(role.id)}
               >
                 <div className="flex items-center mb-6">
-                  <Icon className={`h-10 w-10 text-gray-800 mr-4`} />
+                  <Icon className={`h-10 w-10 text-green-700 mr-4`} />
                   <h3 className="text-2xl font-bold text-gray-800">
                     {role.title}
                   </h3>

@@ -10,6 +10,7 @@ import RegisterForm from "./components/Auth/RegisterForm";
 import VerifyEmailForm from "./components/Auth/VerifyEmailForm";
 import RiderDashboard from "./components/Rider/RiderDashboard";
 import DispatcherDashboard from "./components/Dispatcher/DispatcherDashboard";
+import DeliveryDashboard from "./components/DeliveryRider/DeliveryRiderDashboard";
 import AdminDashboard from "./components/Admin/AdminDashboard";
 import OrderHistory from "./components/Rider/Order/OrderHistory";
 
@@ -65,6 +66,14 @@ const AppContent = () => {
         element={
           <PrivateRoute allowedRole="dispatcher">
             <DispatcherDashboard />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/delivery-dashboard"
+        element={
+          <PrivateRoute allowedRole="delivery">
+            <DeliveryDashboard />
           </PrivateRoute>
         }
       />

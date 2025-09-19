@@ -23,12 +23,14 @@ const LoginForm = () => {
     salesman: "/salesman-dashboard",
     dispatcher: "/dispatcher-dashboard",
     admin: "/admin-dashboard",
+    delivery: "/delivery-dashboard",
   };
 
   const roleDisplay = {
     salesman: "Salesman",
     dispatcher: "Dispatcher",
     admin: "Admin",
+    delivery: "Delivery Rider",
   };
 
   const handleSubmit = async (e) => {

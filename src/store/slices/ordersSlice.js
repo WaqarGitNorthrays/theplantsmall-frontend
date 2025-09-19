@@ -43,6 +43,7 @@ export const fetchOrders = createAsyncThunk(
       payment_status,
       start_date,
       end_date,
+      shop_id,
     } = {},
     { rejectWithValue }
   ) => {
@@ -55,6 +56,7 @@ export const fetchOrders = createAsyncThunk(
       if (payment_status) params.append("payment_status", payment_status);
       if (start_date) params.append("start_date", start_date);
       if (end_date) params.append("end_date", end_date);
+      if (shop_id) params.append("shop_id", shop_id);
 
       const response = await api.get(
         `/plants-mall-orders/api/orders/?${params.toString()}`

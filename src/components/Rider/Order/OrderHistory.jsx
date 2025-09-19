@@ -12,8 +12,8 @@ const OrderHistory = ({ shopId }) => {
 
   // Load first page when component mounts
   useEffect(() => {
-    dispatch(fetchOrders({ page: 1 }));
-  }, [dispatch]);
+    dispatch(fetchOrders({ page: 1, shop_id: shopId }));
+  }, [dispatch, shopId]);
 
   // Filter orders for this shop
   const filteredOrders = orders.filter(
@@ -24,7 +24,7 @@ const OrderHistory = ({ shopId }) => {
   const handleLoadMore = () => {
     if (next) {
       dispatch(setPage(page + 1));
-      dispatch(fetchOrders({ page: page + 1 }));
+      dispatch(fetchOrders({ page: page + 1, shop_id: shopId }));
     }
   };
 

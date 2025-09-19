@@ -346,7 +346,7 @@ export default function AllOrders() {
                   <span className="font-bold text-lg text-gray-900">#{order.order_number}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                  <span className={`px-3 py-1 text-xs text-nowrap font-semibold rounded-full ${getStatusColor(order.status)}`}>
                     {ORDER_STATUS[order.status]}
                   </span>
                   {isExpanded ? (

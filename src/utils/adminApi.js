@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const adminApi = axios.create({
-  baseURL: "http://192.168.2.7/",
+  baseURL: "https://the-plants-mall-backend.onrender.com/",
   headers: {
     "Content-Type": "application/json",
   },
@@ -68,7 +68,7 @@ adminApi.interceptors.response.use(
 
         // 🔑 Refresh admin token
         const { data } = await axios.post(
-          "http://192.168.2.7/auth/api/refresh/",
+          "https://the-plants-mall-backend.onrender.com/auth/api/refresh/",
           { refresh: refreshToken }
         );
 

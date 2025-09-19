@@ -19,6 +19,10 @@ import GpsCapture from "../GpsCapture.jsx";
 import api from "../../../utils/axiosInstance.js";
 
 const OrderTaking = ({ shopId }) => {
+  // State for unavailable products from voice parsing
+  const [unavailableVoiceItems, setUnavailableVoiceItems] = useState([]);
+  // ...existing code...
+  // Move auto-parse useEffect below state declarations
   const dispatch = useDispatch();
   const shops = useSelector((state) => state.shops.shops);
 
@@ -73,6 +77,14 @@ const OrderTaking = ({ shopId }) => {
   const handleLocationCaptured = (loc) => {
     setGpsData(loc);
   };
+
+  // Auto-parse voice order once recording finishes and a note is available
+  useEffect(() => {
+    if (inputType === "voice" && voiceNotes.length > 0 && !voiceProcessing) {
+      console.log("Auto-parsing triggered");
+      handleSubmitVoiceOrder();
+    }
+  }, [voiceNotes, inputType]);
 
   // --- handlers ---
   const handleProductChange = (productId) => {
@@ -256,48 +268,70 @@ const OrderTaking = ({ shopId }) => {
     });
   };
 
-  const handleSubmitVoiceOrder = async () => {
-    if (voiceNotes.length === 0) return;
+const handleSubmitVoiceOrder = async () => {
+  if (voiceNotes.length === 0) return;
 
-    setVoiceProcessing(true);
+  setVoiceProcessing(true);
 
-    try {
-      const formData = new FormData();
-      formData.append("file", voiceNotes[0].blob, "voice-order.mp3");
+  try {
+    const formData = new FormData();
+    formData.append("file", voiceNotes[0].blob, "voice-order.mp3");
 
-      const res = await api.post(
-        "/plants-mall-orders/api/orders/speech-to-text/",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+    const res = await api.post(
+      "/plants-mall-orders/api/orders/speech-to-text/",
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
 
-      const data = res.data; // ✅ Axios already parses JSON
-      console.log("Speech-to-text response:", data);
+    const data = res.data;
+    console.log("Speech-to-text response:", data);
 
-      // Map API response to your order item format
-      const parsedItems = (data.results || []).map((item, idx) => ({
-        id: Date.now() + idx,
-        productId: item.product,
-        name: item.product_name,
-        quantity: parseInt(item.quantity || 0),
-        discount_price: parseFloat(item.discount_price || 0),
-        price: parseFloat(item.price || 0),
-        size: item.carton_packing_unit || "-",
-      }));
+    const validItems = [];
+    const unavailableItems = [];
 
-      setVoiceOrderParsed(parsedItems);
+    (data.results || []).forEach((item, idx) => {
+      if (item.product && !item.message) {
+        // ✅ Valid product
+        validItems.push({
+          id: Date.now() + idx,
+          productId: item.product,
+          name: item.product_name,
+          quantity: parseInt(item.quantity || 0),
+          price: parseFloat(item.price || 0),
+          discount_price: parseFloat(item.discount_price || 0),
+          size: item.carton_packing_unit || "-",
+        });
+      } else if (!item.product && item.message) {
+        // ❌ Product not available
+        unavailableItems.push({
+          id: Date.now() + idx,
+          name: item.product_name || "Unknown Product",
+          message: item.message,
+        });
+      }
+    });
+
+    setVoiceOrderParsed(validItems);
+    setUnavailableVoiceItems(unavailableItems);
+
+    if (validItems.length > 0) {
       toast.success("Voice order parsed successfully!");
-    } catch (err) {
-      console.error("Voice order parsing failed:", err);
-      toast.error("Failed to process voice order. Please try again.");
-    } finally {
-      setVoiceProcessing(false);
+      if (unavailableItems.length > 0) {
+        toast.info("Some products are unavailable. Check messages below.");
+      }
+    } else {
+      toast.error("Parsed error: No valid products found.");
     }
-  };
+  } catch (err) {
+    console.error("Voice order parsing failed:", err);
+    toast.error("Failed to process voice order. Please try again.");
+  } finally {
+    setVoiceProcessing(false);
+  }
+};
+
 
   // Submit order
   const handleSubmitOrder = async () => {
@@ -363,14 +397,9 @@ const OrderTaking = ({ shopId }) => {
       voiceNotes.forEach((note) => formData.append("voice_notes_data", note.blob));
     }
 
-    formData.append(
-      "location",
-      JSON.stringify({
-        latitude: gpsData.lat,
-        longitude: gpsData.lng,
-        accuracy: gpsData.accuracy,
-      })
-    );
+formData.append("latitude", gpsData.lat ? gpsData.lat.toFixed(6) : "");
+formData.append("longitude", gpsData.lng ? gpsData.lng.toFixed(6) : "");
+formData.append("accuracy", gpsData.accuracy ? gpsData.accuracy.toString() : "");
 
     // ✅ Log payload for debugging
     console.log("Final Order Payload:");
@@ -663,11 +692,47 @@ const OrderTaking = ({ shopId }) => {
                               ({item.size})
                             </p>
                           </div>
-                          <span className="font-bold text-green-600">
-                            Rs {(item.quantity * item.price).toFixed(2)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-green-600">
+                              Rs {(item.quantity * item.price).toFixed(2)}
+                            </span>
+                            <button
+                              onClick={() => setVoiceOrderParsed((prev) => prev.filter((i) => i.id !== item.id))}
+                              className="text-red-500 hover:text-red-700 p-1"
+                              title="Remove item"
+                            >
+                              <X className="h-5 w-5" />
+                            </button>
+                          </div>
                         </div>
                       ))}
+                      {/* Show unavailable products with message */}
+                      {unavailableVoiceItems.length > 0 && (
+                        <div className="space-y-2 mt-4">
+                          {unavailableVoiceItems.map((item) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200"
+                            >
+                              <div>
+                                <h5 className="font-medium text-red-700">
+                                  {item.name}
+                                </h5>
+                                <p className="text-sm text-red-600">
+                                  {item.message}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => setUnavailableVoiceItems((prev) => prev.filter((i) => i.id !== item.id))}
+                                className="text-red-400 hover:text-red-700 p-1"
+                                title="Dismiss message"
+                              >
+                                <X className="h-5 w-5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg font-bold text-lg">
                         <span className="text-gray-900">Total:</span>
                         <span className="text-green-700">
@@ -715,13 +780,15 @@ const OrderTaking = ({ shopId }) => {
                         </button>
                       </div>
                     ))}
-                    <button
-                      onClick={handleSubmitVoiceOrder}
-                      disabled={voiceProcessing}
-                      className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
-                    >
-                      {voiceProcessing ? "Parsing..." : "Parse Voice Order"}
-                    </button>
+                    {voiceProcessing && (
+                      <div className="flex items-center justify-center w-full py-4">
+                        <svg className="animate-spin h-6 w-6 text-green-600" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                        </svg>
+                        <span className="ml-2 text-green-600 font-semibold">Parsing voice order...</span>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -773,13 +840,27 @@ const OrderTaking = ({ shopId }) => {
             {/* 📤 Submit Button */}
             <button
               onClick={handleSubmitOrder}
-              disabled={submitting}
-              className={`w-full px-6 py-4 rounded-lg shadow-lg transition-colors text-lg font-semibold mt-6 flex items-center justify-center
+              disabled={
+                submitting ||
+                (inputType === "text" && orderItems.length === 0) ||
+                (inputType === "voice" && voiceOrderParsed.length === 0)
+              }
+              className={`w-full px-6 py-4 rounded-lg shadow-lg text-lg font-semibold mt-6 flex items-center justify-center transition-colors duration-200
                 ${
-                  submitting
-                    ? "bg-green-800 cursor-not-allowed"
-                    : "bg-green-600 text-white hover:bg-green-700"
+                  submitting ||
+                  (inputType === "text" && orderItems.length === 0) ||
+                  (inputType === "voice" && voiceOrderParsed.length === 0)
+                    ? "bg-gray-300 text-gray-500 border border-gray-400 cursor-not-allowed opacity-70"
+                    : "bg-green-600 text-white hover:bg-green-700 border border-green-600"
                 }`}
+              style={{
+                boxShadow:
+                  submitting ||
+                  (inputType === "text" && orderItems.length === 0) ||
+                  (inputType === "voice" && voiceOrderParsed.length === 0)
+                    ? "none"
+                    : "0 4px 14px 0 rgba(34,197,94,0.15)",
+              }}
             >
               {submitting ? (
                 <>
