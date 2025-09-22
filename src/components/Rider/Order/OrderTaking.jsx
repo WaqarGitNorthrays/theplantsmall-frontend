@@ -18,7 +18,7 @@ import { toast } from "react-toastify";
 import GpsCapture from "../GpsCapture.jsx";
 import api from "../../../utils/axiosInstance.js";
 
-const OrderTaking = ({ shopId }) => {
+const OrderTaking = ({ shopId, onBack, onOrderSuccess }) => {
   // State for unavailable products from voice parsing
   const [unavailableVoiceItems, setUnavailableVoiceItems] = useState([]);
   // ...existing code...
@@ -420,6 +420,8 @@ formData.append("accuracy", gpsData.accuracy ? gpsData.accuracy.toString() : "")
       setVoiceNotes([]);
       setExtraVoiceNotes([]);
       setVoiceOrderParsed([]);
+
+      if (onOrderSuccess) onOrderSuccess();
     } catch (err) {
       console.error("Order submission failed:", err);
 

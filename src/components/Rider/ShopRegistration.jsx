@@ -507,11 +507,11 @@ try {
         <div>
           <label className="block text-sm font-medium mb-2">Shop Name</label>
           <div className="flex gap-2 items-center">
-            <input type="text" name="name" value={formData.name} onChange={handleChange} required className="flex-1 px-4 py-3 border rounded-lg" placeholder="Enter shop name" />
+            <input type="text" name="name" value={formData.name} onChange={handleChange} required className="flex-1 min-w-0 px-4 py-3 border rounded-lg" placeholder="Enter shop name" />
             <button
               type="button"
               onClick={() => handleVoiceInput("name")}
-              className={`p-3 rounded-lg border transition-colors duration-200 ${recordingField === 'name' ? 'bg-green-600 border-green-700' : 'bg-gray-100 border-gray-300'} flex items-center justify-center`}
+              className={`flex-shrink-0 p-3 rounded-lg border transition-colors duration-200 ${recordingField === 'name' ? 'bg-green-600 border-green-700' : 'bg-gray-100 border-gray-300'} flex items-center justify-center`}
               aria-label={recordingField === 'name' ? 'Stop Recording' : 'Start Recording'}
             >
               {recordingField === 'name' ? (
@@ -529,11 +529,11 @@ try {
         <div>
           <label className="block text-sm font-medium mb-2">Owner Name</label>
           <div className="flex gap-2 items-center">
-            <input type="text" name="ownerName" value={formData.ownerName} onChange={handleChange} required className="flex-1 px-4 py-3 border rounded-lg" placeholder="Enter owner name" />
+            <input type="text" name="ownerName" value={formData.ownerName} onChange={handleChange} required className="flex-1 min-w-0 px-4 py-3 border rounded-lg" placeholder="Enter owner name" />
             <button
               type="button"
               onClick={() => handleVoiceInput("ownerName")}
-              className={`p-3 rounded-lg border transition-colors duration-200 ${recordingField === 'ownerName' ? 'bg-green-600 border-green-700' : 'bg-gray-100 border-gray-300'} flex items-center justify-center`}
+              className={`flex-shrink-0 p-3 rounded-lg border transition-colors duration-200 ${recordingField === 'ownerName' ? 'bg-green-600 border-green-700' : 'bg-gray-100 border-gray-300'} flex items-center justify-center`}
               aria-label={recordingField === 'ownerName' ? 'Stop Recording' : 'Start Recording'}
             >
               {recordingField === 'ownerName' ? (
@@ -551,11 +551,11 @@ try {
         <div>
           <label className="block text-sm font-medium mb-2">Owner Phone</label>
           <div className="flex gap-2 items-center">
-            <input type="tel" name="ownerPhone" value={formData.ownerPhone} onChange={handleChange} required className="flex-1 px-4 py-3 border rounded-lg" placeholder="Enter phone number" />
+            <input type="tel" name="ownerPhone" value={formData.ownerPhone} onChange={handleChange} required className="flex-1 min-w-0 px-4 py-3 border rounded-lg" placeholder="Enter phone number" />
             <button
               type="button"
               onClick={() => handleVoiceInput("ownerPhone")}
-              className={`p-3 rounded-lg border transition-colors duration-200 ${recordingField === 'ownerPhone' ? 'bg-green-600 border-green-700' : 'bg-gray-100 border-gray-300'} flex items-center justify-center`}
+              className={`flex-shrink-0 p-3 rounded-lg border transition-colors duration-200 ${recordingField === 'ownerPhone' ? 'bg-green-600 border-green-700' : 'bg-gray-100 border-gray-300'} flex items-center justify-center`}
               aria-label={recordingField === 'ownerPhone' ? 'Stop Recording' : 'Start Recording'}
             >
               {recordingField === 'ownerPhone' ? (

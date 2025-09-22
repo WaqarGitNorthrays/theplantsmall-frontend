@@ -105,7 +105,7 @@ const GpsCapture = ({ onLocationCaptured, initialGps }) => {
         startWatching(); // Fallback to continuous watching on failure
       },
       {
-        enableHighAccuracy: true,
+        enableHighAccuracy: false,
         timeout: 10000, // Shorter timeout for a fast fix
         maximumAge: 0,
       }

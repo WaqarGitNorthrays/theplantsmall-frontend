@@ -25,6 +25,9 @@ const RiderDashboard = () => {
 
   const { nearbyShops, loading, error } = useSelector((state) => state.shops);
   const orders = useSelector((state) => state.orders.orders) || [];
+  
+  // Track if we already fetched shops after location is available
+  const [hasFetchedShops, setHasFetchedShops] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -46,19 +49,16 @@ const RiderDashboard = () => {
     } else {
       console.warn("Location not available. Cannot fetch shops.");
       // Optional: Display a user-friendly message
-      // e.g., dispatch(setShopsError("Please enable location services and try again."));
+      dispatch(setShopsError("Please enable location services and try again."));
     }
   };
 
-  // ✅ Fetch shops on component mount (initial load)
   useEffect(() => {
-    // This will fetch shops immediately if location is available on load
-    if (currentSalesmanLocation) {
+    if (currentSalesmanLocation && !hasFetchedShops) {
       handleRefreshShops();
+      setHasFetchedShops(true);
     }
-    // Note: No dependency on currentSalesmanLocation to prevent re-fetching on every change
-    // The button handles subsequent fetches.
-  }, [dispatch, currentSalesmanLocation]); // Updated dependency to ensure initial fetch happens after location is available
+  }, [currentSalesmanLocation, hasFetchedShops]);
 
   const myOrders = orders.filter((order) => {
     if (String(order.order_taker) === String(salesmanId)) return true;
@@ -118,7 +118,7 @@ const RiderDashboard = () => {
           </div>
         </div>
 
-        {/* Shops Section */}
+       {/* Shops Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
           <div className="flex border-b border-gray-100">
             <button
@@ -148,16 +148,13 @@ const RiderDashboard = () => {
           </div>
 
           <div className="p-2 md:p-8 lg:p-12">
-            {/* Shops Tab */}
             {activeTab === "shops" && !selectedShopId && !editingShop && (
               <div className="space-y-4">
+                {/* Header with Refresh and Register buttons */}
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Registered Shops
-                  </h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Shops</h3>
                   <div className="flex items-center space-x-2">
-                    {/* The new refresh button */}
-                    <button
+                    {/* <button
                       onClick={handleRefreshShops}
                       className={`p-2 rounded-full ${
                         loading
@@ -170,85 +167,91 @@ const RiderDashboard = () => {
                       <RefreshCcw
                         className={`h-5 w-5 ${loading ? "animate-spin" : ""}`}
                       />
-                    </button>
+                    </button> */}
 
                     <button
                       onClick={() => setActiveTab("register")}
                       className="flex items-center bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
                     >
-                      <Plus className="h-4 w-4 mr-2" />
                       Register Shop
                     </button>
                   </div>
                 </div>
 
-                {loading && (
-                  <p className="text-center text-gray-500 py-6">
-                    Fetching nearby shops...
-                  </p>
-                )}
-                {error && (
-                  <p className="text-center text-red-500 py-6">{error}</p>
-                )}
-                {!loading && nearbyShops.length === 0 && !error && (
-                  <div className="text-center py-12">
-                    <Store className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">No shops found nearby</p>
-                  </div>
-                )}
-
-                {/* Shops List */}
-                <div className="grid gap-4">
-                  {(nearbyShops || []).map((shop) => (
-                    <div
-                      key={shop.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={(e) => {
-                        if (e.target.closest("button")) return;
-                        setSelectedShopId(shop.id);
-                        setActiveTab("orderTaking");
-                      }}
-                    >
-                      <div className="flex items-start space-x-4">
-                        <img
-                          src={shop.shop_image}
-                          alt={shop.shop_name}
-                          className="w-16 h-16 rounded-lg object-cover"
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900">
-                            {shop.shop_name}
-                          </h4>
-                          <p className="text-sm text-gray-500">
-                            Owner: {shop.owner_name || "N/A"} (
-                            {shop.owner_phone || "—"})
-                          </p>
-                          <p className="text-xs text-gray-400 flex items-center mt-1">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {formatAddress(shop.shop_address)}
-                          </p>
-                        </div>
-                        <div className="text-right flex flex-col items-end space-y-1">
-                          <p className="text-xs text-gray-400">Distance</p>
-                          <p className="text-sm text-gray-600">
-                            {shop.distance?.toFixed(2)} km
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {new Date(shop.created_at).toLocaleDateString()}
-                          </p>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditShop(shop);
-                            }}
-                            className="mt-2 flex items-center text-blue-600 text-xs hover:underline"
-                          >
-                            <Edit className="h-3 w-3 mr-1" /> Edit
-                          </button>
-                        </div>
+                {/* Shops content */}
+                <div className="min-h-[300px] relative">
+                  {loading ? (
+                    // Loading spinner centered
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex flex-col items-center">
+                        <RefreshCcw className="h-8 w-8 text-gray-400 animate-spin mb-2" />
+                        <p className="text-gray-500">Fetching nearby shops…</p>
                       </div>
                     </div>
-                  ))}
+                  ) : error ? (
+                    // Show error
+                    <p className="text-center text-red-500 py-6">{error}</p>
+                  ) : nearbyShops.length === 0 ? (
+                    // Empty state
+                    <div className="text-center py-12">
+                      <Store className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">No shops found nearby</p>
+                    </div>
+                  ) : (
+                    // Shops list
+                    <div className="grid gap-4">
+                      {nearbyShops.map((shop) => (
+                        <div
+                          key={shop.id}
+                          className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                          onClick={(e) => {
+                            if (e.target.closest("button")) return;
+                            setSelectedShopId(shop.id);
+                            setActiveTab("orderTaking");
+                          }}
+                        >
+                          <div className="flex items-start space-x-4">
+                            <img
+                              src={shop.shop_image}
+                              alt={shop.shop_name}
+                              className="w-16 h-16 rounded-lg object-cover"
+                            />
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">
+                                {shop.shop_name}
+                              </h4>
+                              <p className="text-sm text-gray-500">
+                                Owner: {shop.owner_name || "N/A"} (
+                                {shop.owner_phone || "—"})
+                              </p>
+                              <p className="text-xs text-gray-400 flex items-center mt-1">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                {formatAddress(shop.shop_address)}
+                              </p>
+                            </div>
+                            <div className="text-right flex flex-col items-end space-y-1">
+                              <p className="text-xs text-gray-400">Distance</p>
+                              <p className="text-sm text-gray-600">
+                                {shop.distance?.toFixed(2)} km
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {new Date(shop.created_at).toLocaleDateString()}
+                              </p>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditShop(shop);
+                                }}
+                                className="mt-2 flex items-center text-blue-600 text-xs hover:underline"
+                              >
+                                <Edit className="h-3 w-3 mr-1" /> Edit
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -261,6 +264,7 @@ const RiderDashboard = () => {
                   setSelectedShopId(null);
                   setActiveTab("shops");
                 }}
+                onOrderSuccess={() => dispatch(fetchSalesmanStats())}
               />
             )}
 
@@ -274,6 +278,7 @@ const RiderDashboard = () => {
             )}
           </div>
         </div>
+
       </div>
     </Layout>
   );
