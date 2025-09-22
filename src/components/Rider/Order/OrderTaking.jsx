@@ -457,7 +457,7 @@ finally {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 md:p-12 max-w-4xl mx-auto space-y-8">
+    <div className="bg-white rounded-xl shadow-md sm:p-8 md:p-12 max-w-4xl mx-auto space-y-8">
       {/* Tabs */}
       <div className="flex space-x-2 border-b-2 border-gray-100">
         <button

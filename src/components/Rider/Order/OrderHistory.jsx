@@ -1,5 +1,4 @@
-// src/components/orders/OrderHistory.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Clock, Mic, Tag } from "lucide-react";
 import { fetchOrders, setPage } from "../../../store/slices/ordersSlice";
@@ -10,17 +9,67 @@ const OrderHistory = ({ shopId }) => {
     (state) => state.orders
   );
 
+  const [audioUrls, setAudioUrls] = useState({}); // store blob URLs per order
+
   // Load first page when component mounts
   useEffect(() => {
     dispatch(fetchOrders({ page: 1, shop_id: shopId }));
   }, [dispatch, shopId]);
 
-  // Filter orders for this shop
-  const filteredOrders = orders.filter(
-    (o) => String(o.shop) === String(shopId)
-  );
+  // Generate URLs for voice notes
+  useEffect(() => {
+    const newUrls = {};
+    orders.forEach((order) => {
+      if (order.voice_notes?.length > 0) {
+        newUrls[order.id] = order.voice_notes
+          .map((note) => {
+            try {
+              // Handle object with voice_file (backend URL)
+              if (note && typeof note === "object" && note.voice_file && typeof note.voice_file === "string") {
+                return note.voice_file;
+              }
+              // Handle string URLs (for backward compatibility)
+              if (typeof note === "string" && note.trim() !== "") {
+                return note;
+              }
+              // Handle objects with url or blob (for backward compatibility)
+              if (note && typeof note === "object") {
+                if (note.url && typeof note.url === "string") {
+                  return note.url;
+                }
+                if (note.blob instanceof Blob) {
+                  return URL.createObjectURL(note.blob);
+                }
+              }
+              return null; // Invalid note
+            } catch (err) {
+              console.error(`Error processing voice note for order ${order.id}:`, err);
+              return null;
+            }
+          })
+          .filter((url) => url !== null); // Remove invalid URLs
+      }
+    });
+    setAudioUrls(newUrls);
 
-  // Load next page
+    // Cleanup: revoke blob URLs on unmount
+    return () => {
+      Object.values(newUrls).forEach((urls) => {
+        urls.forEach((u) => {
+          if (u?.startsWith("blob:")) {
+            try {
+              URL.revokeObjectURL(u);
+            } catch (err) {
+              console.error("Error revoking blob URL:", err);
+            }
+          }
+        });
+      });
+    };
+  }, [orders]);
+
+  const filteredOrders = orders.filter((o) => String(o.shop) === String(shopId));
+
   const handleLoadMore = () => {
     if (next) {
       dispatch(setPage(page + 1));
@@ -51,7 +100,6 @@ const OrderHistory = ({ shopId }) => {
 
   return (
     <div className="relative">
-      {/* Scrollable container */}
       <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
         {filteredOrders.map((order) => (
           <div
@@ -104,22 +152,20 @@ const OrderHistory = ({ shopId }) => {
             )}
 
             {/* Voice Notes */}
-            {order.voice_notes?.length > 0 && (
+            {order.voice_notes?.length > 0 && audioUrls[order.id]?.length > 0 && (
               <div className="mb-4">
                 <h5 className="font-semibold text-gray-800 flex items-center mb-2">
                   <Mic className="h-4 w-4 mr-2 text-green-600" /> Voice Notes
                 </h5>
                 <div className="space-y-2">
-                  {order.voice_notes.map((note, idx) => (
+                  {audioUrls[order.id].map((url, idx) => (
                     <div
                       key={idx}
                       className="p-3 bg-gray-50 border border-gray-200 rounded-lg"
                     >
-                      <audio
-                        controls
-                        src={note}
-                        className="w-full h-8 sm:h-10"
-                      />
+                      <audio controls src={url} className="w-full h-8 sm:h-10">
+                        Your browser does not support the audio element.
+                      </audio>
                     </div>
                   ))}
                 </div>
@@ -141,9 +187,8 @@ const OrderHistory = ({ shopId }) => {
         ))}
       </div>
 
-      {/* Sticky Load More Button */}
       {next && (
-        <div className="bottom-0 left-0 right-0  py-3 text-center">
+        <div className="bottom-0 left-0 right-0 py-3 text-center">
           <button
             onClick={handleLoadMore}
             disabled={loading}

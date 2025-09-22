@@ -39,6 +39,8 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [existingImageHashes, setExistingImageHashes] = useState({});
   const [currentImageHashes, setCurrentImageHashes] = useState(new Set());
+   // ✅ Add this state for error message
+  const [phoneError, setPhoneError] = useState("");
 
   const objectUrlsRef = useRef(new Set());
   const hasPrepopulated = useRef(false);
@@ -556,42 +558,67 @@ try {
 
 
         {/* Owner Phone */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Owner Phone</label>
-          <div className="flex gap-2 items-center">
-            <input type="tel" name="ownerPhone" value={formData.ownerPhone} onChange={handleChange} required className="flex-1 min-w-0 px-4 py-3 border rounded-lg" placeholder="Enter phone number" />
-            <button
-              type="button"
-              onClick={() => handleVoiceInput("ownerPhone")}
-              className={`flex-shrink-0 p-3 rounded-lg border transition-colors duration-200 ${recordingField === 'ownerPhone' ? 'bg-green-600 border-green-700' : 'bg-gray-100 border-gray-300'} flex items-center justify-center`}
-              aria-label={recordingField === 'ownerPhone' ? 'Stop Recording' : 'Start Recording'}
-            >
-              {recordingField === 'ownerPhone' ? (
-                <svg className="h-5 w-5 text-white animate-pulse" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="8" />
-                </svg>
-              ) : (
-                <Mic className="h-5 w-5 text-gray-600" />
-              )}
-            </button>
+          <div>
+            <label className="block text-sm font-medium mb-2">Owner Phone</label>
+            <div className="flex gap-2 items-center">
+              <input
+                type="tel"
+                name="ownerPhone"
+                value={formData.ownerPhone}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (/^\d*$/.test(value)) {
+                    // Only digits allowed
+                    handleChange({ target: { name: "ownerPhone", value } });
+                    setPhoneError(""); // clear error if valid
+                  } else {
+                    setPhoneError("Only digits are allowed!");
+                  }
+                }}
+                required
+                className="flex-1 min-w-0 px-4 py-3 border rounded-lg"
+                placeholder="Enter phone number"
+              />
+              <button
+                type="button"
+                onClick={() => handleVoiceInput("ownerPhone")}
+                className={`flex-shrink-0 p-3 rounded-lg border transition-colors duration-200 ${
+                  recordingField === "ownerPhone"
+                    ? "bg-green-600 border-green-700"
+                    : "bg-gray-100 border-gray-300"
+                } flex items-center justify-center`}
+                aria-label={recordingField === "ownerPhone" ? "Stop Recording" : "Start Recording"}
+              >
+                {recordingField === "ownerPhone" ? (
+                  <svg className="h-5 w-5 text-white animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="12" r="8" />
+                  </svg>
+                ) : (
+                  <Mic className="h-5 w-5 text-gray-600" />
+                )}
+              </button>
+            </div>
+
+            {/* Error message */}
+            {phoneError && <p className="text-red-500 text-sm mt-1">{phoneError}</p>}
           </div>
-        </div>
+
 
                   {/* ✅ WhatsApp checkbox */}
-  <div className="mt-2 flex items-center gap-2">
-    <input
-      type="checkbox"
-      id="isWhatsapp"
-      checked={formData.is_whatsapp}
-      onChange={(e) =>
-        setFormData((prev) => ({ ...prev, is_whatsapp: e.target.checked }))
-      }
-      className="h-4 w-4"
-    />
-    <label htmlFor="isWhatsapp" className="text-sm">
-      Is your WhatsApp on this number?
-    </label>
-  </div>
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="isWhatsapp"
+            checked={formData.is_whatsapp}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, is_whatsapp: e.target.checked }))
+            }
+            className="h-4 w-4"
+          />
+          <label htmlFor="isWhatsapp" className="text-sm">
+            Is your WhatsApp on this number?
+          </label>
+        </div>
 
         {/* Front Image */}
         <div>
@@ -639,10 +666,21 @@ try {
 
         {/* Submit */}
         <div className="pt-4">
-          <button type="submit" className="w-full bg-green-600 text-white font-semibold py-3 rounded-xl hover:bg-green-700">
-            {mode === "edit" ? "Update Shop" : "Register Shop"}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-green-600 text-white font-semibold py-3 rounded-xl hover:bg-green-700 disabled:opacity-70"
+          >
+            {loading
+              ? mode === "edit"
+                ? "Updating..."
+                : "Registering..."
+              : mode === "edit"
+              ? "Update Shop"
+              : "Register Shop"}
           </button>
         </div>
+
       </form>
     </div>
   );
