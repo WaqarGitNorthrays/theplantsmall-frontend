@@ -349,6 +349,11 @@ const handleSubmitVoiceOrder = async () => {
     formData.append("shop", selectedShop.id);
     formData.append("order_taker", order_taker);
 
+      const sanitizeNumber = (value, decimals = 2) => {
+        if (value == null || isNaN(value)) return 0;
+        return parseFloat(value).toFixed(decimals); // always string with 2 decimals
+      };
+
     if (inputType === "text") {
       if (orderItems.length === 0) {
         toast.error("Please add at least one item for text orders.");
@@ -363,9 +368,9 @@ const handleSubmitVoiceOrder = async () => {
             product_name: item.name,
             cotton: item.cottonId,
             cotton_packing_unit: item.size,
-            cotton_price: item.minPrice.toFixed(2),
-            quantity: item.quantity,
-            unit_price: item.price.toFixed(2),
+            cotton_price: sanitizeNumber(item.minPrice),
+            quantity: parseInt(item.quantity) || 0,
+            unit_price: sanitizeNumber(item.price),
           }))
         )
       );
@@ -386,9 +391,9 @@ const handleSubmitVoiceOrder = async () => {
             product_name: item.name,
             cotton: null,
             cotton_packing_unit: item.size,
-            cotton_price: item.price.toFixed(2),
-            quantity: item.quantity,
-            unit_price: item.price.toFixed(2),
+            cotton_price: sanitizeNumber(item.minPrice),
+            quantity: parseInt(item.quantity) || 0,
+            unit_price: sanitizeNumber(item.price),
             // is_voice_order: true,
           }))
         )
@@ -397,9 +402,9 @@ const handleSubmitVoiceOrder = async () => {
       voiceNotes.forEach((note) => formData.append("voice_notes_data", note.blob));
     }
 
-formData.append("latitude", gpsData.lat ? gpsData.lat.toFixed(6) : "");
-formData.append("longitude", gpsData.lng ? gpsData.lng.toFixed(6) : "");
-formData.append("accuracy", gpsData.accuracy ? gpsData.accuracy.toString() : "");
+  formData.append("latitude", gpsData.lat ? sanitizeNumber(gpsData.lat, 6) : "");
+  formData.append("longitude", gpsData.lng ? sanitizeNumber(gpsData.lng, 6) : "");
+  formData.append("accuracy", gpsData.accuracy ? sanitizeNumber(gpsData.accuracy, 2) : "");
 
     // ✅ Log payload for debugging
     console.log("Final Order Payload:");
@@ -443,9 +448,11 @@ formData.append("accuracy", gpsData.accuracy ? gpsData.accuracy.toString() : "")
       message = Array.isArray(err[firstKey]) ? err[firstKey][0] : err[firstKey];
     }
   }
-
   toast.error(message);
 }
+finally {
+    setSubmitting(false);
+  }
 
   };
 
