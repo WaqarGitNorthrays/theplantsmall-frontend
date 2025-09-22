@@ -423,18 +423,30 @@ formData.append("accuracy", gpsData.accuracy ? gpsData.accuracy.toString() : "")
 
       if (onOrderSuccess) onOrderSuccess();
     } catch (err) {
-      console.error("Order submission failed:", err);
+  console.error("Order submission failed:", err);
 
-      // Display backend error message if exists, else default message
-      const message =
-        err?.message ||
-        err?.non_field_errors?.[0] ||
-        "Failed to submit order. Please try again.";
-      toast.error(message);
+  let message = "Failed to submit order. Please try again.";
+
+  if (err?.cotton_packing_unit) {
+    // Handle missing cotton stock error
+    message = err.cotton_packing_unit;
+  } else if (err?.message) {
+    message = err.message;
+  } else if (err?.non_field_errors?.length) {
+    message = err.non_field_errors[0];
+  } else if (typeof err === "string") {
+    message = err;
+  } else if (typeof err === "object") {
+    // fallback for any key-based error object
+    const firstKey = Object.keys(err)[0];
+    if (firstKey && err[firstKey]) {
+      message = Array.isArray(err[firstKey]) ? err[firstKey][0] : err[firstKey];
     }
-    finally{
-        setSubmitting(false); 
-    }
+  }
+
+  toast.error(message);
+}
+
   };
 
   return (

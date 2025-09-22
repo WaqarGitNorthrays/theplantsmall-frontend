@@ -21,9 +21,11 @@ const LoginForm = () => {
 
   const dashboards = {
     salesman: "/salesman-dashboard",
+    sales_man: "/salesman-dashboard",
     dispatcher: "/dispatcher-dashboard",
     admin: "/admin-dashboard",
     delivery: "/delivery-dashboard",
+    delivery_rider: "/delivery-dashboard",
   };
 
   const roleDisplay = {
@@ -41,13 +43,15 @@ const LoginForm = () => {
     }
     setLocalError("");
 
-    // Debug: log role value
-    console.log("Login payload:", { identifier, password, role });
+    // Map 'salesman' to 'sales_man' for backend
+    const backendRole = role === "salesman" ? "sales_man" : role;
+    // console.log("Login payload:", { identifier, password, role: backendRole });
 
     try {
-      await dispatch(login({ identifier, password, role })).unwrap();
+      await dispatch(login({ identifier, password, role: backendRole })).unwrap();
       dispatch(clearError());
-      navigate(dashboards[role]); // Only navigate on success
+  // Use backendRole for navigation, fallback to role
+  navigate(dashboards[backendRole] || dashboards[role]); // Only navigate on success
     } catch {
       // ❌ Do not parse error again here
       // Redux error already contains the backend message

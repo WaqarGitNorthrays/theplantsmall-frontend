@@ -13,7 +13,7 @@ const Layout = ({ children, title }) => {
   const salesmanId = user?.id;
 
   // ✅ Run location tracking only if role is salesman
-  if (user?.role === "salesman") {
+  if (user?.role === "sales_man") {
     useRealTimeUpdates(salesmanId); 
     useSendLocation(salesmanId);
   }
@@ -56,7 +56,7 @@ const Layout = ({ children, title }) => {
                   {user?.name || user?.username}
                 </p>
                 <p className={`text-xs capitalize ${getRoleColor(user?.role)}`}>
-                  {user?.role}
+                  {user?.role === "sales_man" ? "Salesman" : user?.role}
                 </p>
               </div>
 

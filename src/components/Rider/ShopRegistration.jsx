@@ -21,6 +21,7 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
     name: "",
     ownerName: "",
     ownerPhone: "",
+    is_whatsapp: true,
     frontImage: null,
     frontImagePreview: "",
     insideImages: [],
@@ -49,6 +50,7 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
         name: shop.shop_name || "",
         ownerName: shop.owner_name || "",
         ownerPhone: shop.owner_phone || "",
+        is_whatsapp: shop.is_whatsapp || true,
         frontImage: null,
         frontImagePreview: shop.shop_image || "",
         insideImages: [],
@@ -317,6 +319,7 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
       name: "",
       ownerName: "",
       ownerPhone: "",
+      is_whatsapp: true,
       frontImage: null,
       frontImagePreview: "",
       insideImages: [],
@@ -339,6 +342,7 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
     if (formData.name !== shop.shop_name) changed.shop_name = formData.name;
     if (formData.ownerName !== shop.owner_name) changed.owner_name = formData.ownerName;
     if (formData.ownerPhone !== shop.owner_phone) changed.owner_phone = formData.ownerPhone;
+    if (formData.is_whatsapp !== shop.is_whatsapp) changed.is_whatsapp = formData.is_whatsapp;
     if (shopAddress !== shop.shop_address) changed.shop_address = shopAddress;
 
     if (gps) {
@@ -380,6 +384,7 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
       payload.append("shop_name", formData.name);
       payload.append("owner_name", formData.ownerName);
       payload.append("owner_phone", formData.ownerPhone);
+      payload.append("is_whatsapp", formData.is_whatsapp ? "true" : "false");
       payload.append("shop_address", shopAddress);
       payload.append("latitude", roundedGps.lat);
       payload.append("longitude", roundedGps.lng);
@@ -394,6 +399,7 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
       payload.append("shop_name", formData.name);
       payload.append("owner_name", formData.ownerName);
       payload.append("owner_phone", formData.ownerPhone);
+      payload.append("is_whatsapp", formData.is_whatsapp ? "true" : "false");
       payload.append("shop_address", shopAddress);
       payload.append("latitude", roundedGps.lat);
       payload.append("longitude", roundedGps.lng);
@@ -486,7 +492,7 @@ try {
     <div className="space-y-6 max-w-3xl mx-auto px-4 relative">
       {alert.visible && <AlertMessage {...alert} onClose={() => setAlert({ ...alert, visible: false })} />}
       {loading && (
-        <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-50 rounded-xl">
+        <div className="">
           <div className="loader border-4 border-t-4 border-green-600 w-12 h-12 rounded-full animate-spin"></div>
         </div>
       )}
@@ -547,6 +553,8 @@ try {
           </div>
         </div>
 
+
+
         {/* Owner Phone */}
         <div>
           <label className="block text-sm font-medium mb-2">Owner Phone</label>
@@ -568,6 +576,22 @@ try {
             </button>
           </div>
         </div>
+
+                  {/* ✅ WhatsApp checkbox */}
+  <div className="mt-2 flex items-center gap-2">
+    <input
+      type="checkbox"
+      id="isWhatsapp"
+      checked={formData.is_whatsapp}
+      onChange={(e) =>
+        setFormData((prev) => ({ ...prev, is_whatsapp: e.target.checked }))
+      }
+      className="h-4 w-4"
+    />
+    <label htmlFor="isWhatsapp" className="text-sm">
+      Is your WhatsApp on this number?
+    </label>
+  </div>
 
         {/* Front Image */}
         <div>

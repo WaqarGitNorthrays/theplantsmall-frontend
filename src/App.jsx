@@ -23,9 +23,12 @@ const PrivateRoute = ({ children, allowedRole }) => {
     return <Navigate to="/" replace />;
   }
 
-  if (allowedRole && user?.role !== allowedRole) {
+  // Allow both 'salesman' and 'sales_man' for salesman dashboard
+  const userRole = user?.role;
+  const isSalesman = allowedRole === "salesman" && (userRole === "salesman" || userRole === "sales_man");
+  if (allowedRole && !isSalesman && userRole !== allowedRole) {
     // redirect to the dashboard that matches their role
-    return <Navigate to={`/${user.role}-dashboard`} replace />;
+    return <Navigate to={`/${userRole}-dashboard`} replace />;
   }
 
   return children;

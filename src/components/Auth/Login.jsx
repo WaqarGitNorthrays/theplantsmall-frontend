@@ -51,7 +51,9 @@ const Login = () => {
     setSelectedRole(roleId);
     setEnableGPS(roleId === "salesman");
     // If authenticated and role matches, redirect to dashboard
-    if (isAuthenticated && user?.role === roleId) {
+    const userRole = user?.role;
+    const isSalesman = roleId === "salesman" && (userRole === "salesman" || userRole === "sales_man");
+    if (isAuthenticated && (userRole === roleId || isSalesman)) {
       if (roleId === "salesman") navigate("/salesman-dashboard");
       else if (roleId === "dispatcher") navigate("/dispatcher-dashboard");
       else if (roleId === "admin") navigate("/admin-dashboard");
