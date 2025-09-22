@@ -1,5 +1,6 @@
 // src/components/dispatcher/DispatcherDashboard.jsx
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import { useSelector, useDispatch } from "react-redux";
 import {
   fetchOrders,
@@ -38,21 +39,25 @@ export default function DispatcherDashboard() {
   const { riders, loading: ridersLoading } = useSelector((s) => s.riders);
 
   // Local state
-  const [filter, setFilter] = useState("preparing");
+  const [filter, setFilter] = useState("all");
   const [riderAssignments, setRiderAssignments] = useState({});
 
   const totalPages = Math.ceil(count / pageSize);
 
   useEffect(() => {
     dispatch(fetchDispatcherStats());
-    dispatch(fetchOrders({ page, pageSize }));
+    dispatch(
+      fetchOrders({
+        page,
+        pageSize,
+        status: filter !== "all" ? filter : undefined,
+      })
+    );
     dispatch(fetchRiders());
-  }, [dispatch, page, pageSize]);
+  }, [dispatch, page, pageSize, filter]);
 
-  const filteredOrders = (orders || []).filter((order) => {
-    if (filter === "all") return true;
-    return order.status === filter;
-  });
+  // Orders are now filtered by backend, so use orders directly
+  const filteredOrders = orders || [];
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -70,10 +75,23 @@ export default function DispatcherDashboard() {
   };
 
   const handleStatusChange = (order, newStatus) => {
+    if (!newStatus) return;
     if (newStatus === "ready") {
+      // Only allow status change to 'ready' via rider assignment confirmation
       setRiderAssignments((prev) => ({ ...prev, [order.id]: "" }));
+      return;
+    }
+    if (newStatus === "preparing") {
+      dispatch(updateOrder({ orderId: order.id, updates: { status: newStatus } }))
+        .then((res) => {
+          if (!res.error) toast.success("Order is Preparing");
+          dispatch(fetchDispatcherStats());
+        });
     } else {
-      dispatch(updateOrder({ orderId: order.id, updates: { status: newStatus } }));
+      dispatch(updateOrder({ orderId: order.id, updates: { status: newStatus } }))
+        .then((res) => {
+          if (!res.error) toast.success("Order status updated");
+        });
     }
   };
 
@@ -86,7 +104,12 @@ export default function DispatcherDashboard() {
         orderId,
         updates: { status: "ready", delivery_rider: riderId },
       })
-    );
+    ).then((res) => {
+      if (!res.error) {
+        toast.success("Order is  Ready for Pickup");
+        dispatch(fetchDispatcherStats());
+      }
+    });
 
     setRiderAssignments((prev) => {
       const copy = { ...prev };
@@ -97,7 +120,7 @@ export default function DispatcherDashboard() {
 
   return (
     <Layout title="Dispatcher Dashboard">
-      <div className="space-y-10 p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+      <div className="space-y-10 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="relative p-6 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden group">
@@ -168,7 +191,7 @@ export default function DispatcherDashboard() {
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {loading && (
               <p className="text-center text-gray-500 py-12">Loading orders...</p>
             )}
@@ -240,42 +263,52 @@ export default function DispatcherDashboard() {
                       <label className="block text-sm font-semibold text-gray-800">
                         Update Status:
                       </label>
-                      <select
-                        value={order.status || ""}
-                        onChange={(e) => handleStatusChange(order, e.target.value)}
-                        className="w-full px-3 py-2 text-sm rounded-md border shadow-sm bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
-                      >
-                        <option value="">-- Select Status --</option>
-                        {Object.entries(ORDER_STATUS).map(([key, label]) => (
-                          <option key={key} value={key}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                          <Tag className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <select
+                          value={order.status || ""}
+                          onChange={(e) => handleStatusChange(order, e.target.value)}
+                          className="cursor-pointer block w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg bg-gray-50 appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+                        >
+                          <option value="" >-- Select Status --</option>
+                          {Object.entries(ORDER_STATUS).map(([key, label]) => (
+                            <option key={key} value={key}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
                       {riderAssignments[order.id] !== undefined && (
                         <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                           <label className="block text-sm font-semibold text-gray-800 mb-1">
                             Assign Rider:
                           </label>
-                          <select
-                            value={riderAssignments[order.id]}
-                            onChange={(e) =>
-                              setRiderAssignments((prev) => ({
-                                ...prev,
-                                [order.id]: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 text-sm rounded-md border shadow-sm bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
-                          >
-                            <option value="">Select Rider</option>
-                            {ridersLoading && <option disabled>Loading riders...</option>}
-                            {riders.map((r) => (
-                              <option key={r.id} value={r.id}>
-                                {r.name} ({r.phone})
-                              </option>
-                            ))}
-                          </select>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                              <UserCheck className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <select
+                              value={riderAssignments[order.id]}
+                              onChange={(e) =>
+                                setRiderAssignments((prev) => ({
+                                  ...prev,
+                                  [order.id]: e.target.value,
+                                }))
+                              }
+                              className="cursor-pointer block w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+                            >
+                              <option value="">Select Rider</option>
+                              {ridersLoading && <option disabled>Loading riders...</option>}
+                              {riders.map((r) => (
+                                <option key={r.id} value={r.id}>
+                                  {r.name} ({r.phone})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                           <button
                             onClick={() => handleAssignRider(order.id)}
                             disabled={!riderAssignments[order.id]}

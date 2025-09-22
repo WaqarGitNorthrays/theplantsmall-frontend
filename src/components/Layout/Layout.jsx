@@ -41,13 +41,13 @@ const Layout = ({ children, title }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="bg-green-100 p-2 rounded-lg">
-                <Leaf className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">The Plants Mall</h1>
-                {title && <p className="text-sm text-gray-500">{title}</p>}
-              </div>
+                  <div className="bg-green-100 p-1 sm:p-2 rounded-lg">
+                    <Leaf className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h1 className="text-base sm:text-lg font-semibold text-gray-900">The Plants Mall</h1>
+                    {title && <p className="text-xs sm:text-sm text-gray-500">{title}</p>}
+                  </div>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -60,12 +60,12 @@ const Layout = ({ children, title }) => {
                 </p>
               </div>
 
-              <button
-                onClick={handleLogout}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <LogOut className="h-5 w-5" />
-              </button>
+                  <button
+                    onClick={handleLogout}
+                    className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors self-start sm:self-auto sm:p-2"
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </button>
             </div>
           </div>
         </div>

@@ -60,7 +60,7 @@ export default function StatusModal({ order, newStatus, onClose, onConfirm }) {
               onChange={(e) => setSelectedDispatcher(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 shadow-sm focus:ring-2 focus:ring-green-500"
             >
-              <option value="">-- Select Dispatcher --</option>
+              <option value="">Select Dispatcher</option>
               {(dispatchers?.results || []).map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}

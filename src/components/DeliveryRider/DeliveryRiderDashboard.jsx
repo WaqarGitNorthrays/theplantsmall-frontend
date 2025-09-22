@@ -1,6 +1,7 @@
 // src/components/rider/DeliveryRiderDashboard.jsx
 
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import { useSelector, useDispatch } from "react-redux";
 import {
   fetchOrders,
@@ -13,25 +14,11 @@ import {
   Package,
   CheckCircle,
   Filter,
-  Tag,
-  Store,
-  Calendar,
+  Clock,
   DollarSign,
-  Clock, // Added Clock icon
 } from "lucide-react";
-
-// Delivery Rider can only move "ready → delivered"
-const ORDER_STATUS = {
-  ready: "Ready for Pickup",
-  delivered: "Delivered",
-};
-
-// Payment status options
-const PAYMENT_STATUS = {
-  unpaid: "Unpaid",
-  paid: "Paid",
-  refunded: "Refunded",
-};
+import DeliveryOrderCard from "./DeliveryOrderCard";
+import { ORDER_STATUS, PAYMENT_STATUS } from "./DeliveryRiderDashboard.constants";
 
 export default function DeliveryRiderDashboard() {
   const dispatch = useDispatch();
@@ -47,33 +34,73 @@ export default function DeliveryRiderDashboard() {
   } = useSelector((s) => s.deliveryRiderStats|| {});
 
   // Local state
-  const [filter, setFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [paymentFilter, setPaymentFilter] = useState("");
 
   const totalPages = Math.ceil(count / pageSize);
 
   useEffect(() => {
-    dispatch(fetchOrders({ page, pageSize }));
-    dispatch(fetchDeliveryRiderStats());
-  }, [dispatch, page, pageSize]);
-
-  const filteredOrders = (orders || []).filter((order) => {
-    if (filter === "all") return true;
-    return order.status === filter;
-  });
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "ready":
-        return "text-lime-700 bg-lime-100";
-      case "delivered":
-        return "text-emerald-700 bg-emerald-100";
-      default:
-        return "text-gray-700 bg-gray-100";
-    }
-  };
-
-  const handleUpdateOrder = (orderId, updates) => {
     dispatch(
+      fetchOrders({
+        page,
+        pageSize,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        payment_status: paymentFilter || undefined,
+      })
+    );
+    dispatch(fetchDeliveryRiderStats());
+  }, [dispatch, page, pageSize, statusFilter, paymentFilter]);
+
+  // Orders are now filtered by backend, so use orders directly
+  const filteredOrders = orders || [];
+
+  // Best practice: single handler for child order card
+  const handleUpdateOrder = async (orderId, updates, refreshStats) => {
+    // Only allow status update to 'delivered' if payment_status is set
+    if (updates.status === "delivered") {
+      if (!updates.payment_status) {
+        toast.error("Please select payment status before marking as delivered.");
+        return false;
+      }
+      const res = await dispatch(
+        updateOrder({
+          orderId,
+          updates: {
+            status: "delivered",
+            payment_status: updates.payment_status,
+          },
+        })
+      );
+      if (res.error) {
+        toast.error(res.error.message || "Failed to update order");
+        return false;
+      } else {
+        toast.success("Order marked as Delivered");
+        if (refreshStats) refreshStats();
+        return true;
+      }
+    }
+    // For payment status update only
+    if (updates.payment_status && !updates.status) {
+      const res = await dispatch(
+        updateOrder({
+          orderId,
+          updates: {
+            payment_status: updates.payment_status,
+          },
+        })
+      );
+      if (res.error) {
+        toast.error(res.error.message || "Failed to update payment status");
+        return false;
+      } else {
+        toast.success("Payment status updated");
+        if (refreshStats) refreshStats();
+        return true;
+      }
+    }
+    // For other status updates
+    const res = await dispatch(
       updateOrder({
         orderId,
         updates: {
@@ -81,11 +108,19 @@ export default function DeliveryRiderDashboard() {
         },
       })
     );
+    if (res.error) {
+      toast.error(res.error.message || "Failed to update order");
+      return false;
+    } else {
+      toast.success("Order updated");
+      if (refreshStats) refreshStats();
+      return true;
+    }
   };
 
   return (
     <Layout title="Delivery Rider Dashboard">
-      <div className="space-y-10 p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+      <div className="space-y-10 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="relative p-6 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden group">
@@ -103,9 +138,9 @@ export default function DeliveryRiderDashboard() {
           <div className="relative p-6 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden group">
             <div className="flex items-center justify-between relative z-10">
               <div>
-                <p className="text-sm font-medium text-gray-600">Preparing</p>
+                <p className="text-sm font-medium text-gray-600">Delivered</p>
                 <p className="text-4xl font-bold text-yellow-600 mt-2">
-                  {stats.preparing}
+                  {stats.delivered}
                 </p>
               </div>
               <Clock className="h-16 w-16 text-gray-200 group-hover:text-yellow-300 transition-colors duration-300" />
@@ -143,23 +178,39 @@ export default function DeliveryRiderDashboard() {
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
           <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h2 className="text-2xl font-bold text-gray-900">My Orders</h2>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <Filter className="h-5 w-5 text-gray-400" />
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Filter className="h-5 w-5 text-gray-400" />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="block w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+                >
+                  <option value="all">All Orders</option>
+                  <option value="ready">Ready</option>
+                  <option value="delivered">Delivered</option>
+                </select>
               </div>
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                className="block w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
-              >
-                <option value="all">All Orders</option>
-                <option value="ready">Ready</option>
-                <option value="delivered">Delivered</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={paymentFilter}
+                  onChange={(e) => setPaymentFilter(e.target.value)}
+                  className="block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
+                >
+                  <option value="">All Payments</option>
+                  {Object.entries(PAYMENT_STATUS).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {loading && (
               <p className="text-center text-gray-500 py-12">
                 Loading orders...
@@ -180,104 +231,11 @@ export default function DeliveryRiderDashboard() {
             {!loading && !error && filteredOrders.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredOrders.map((order) => (
-                  <div
+                  <DeliveryOrderCard
                     key={order.id}
-                    className="border-2 border-transparent rounded-xl p-6 bg-white shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-bold text-gray-900 text-lg">
-                        Order #{order.order_number}
-                      </h4>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs text-nowrap font-semibold w-max ${getStatusColor(
-                          order.status
-                        )}`}
-                      >
-                        {ORDER_STATUS[order.status] || order.status}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 text-sm text-gray-600 mb-4">
-                      <div className="flex items-center gap-2">
-                        <Store className="h-4 w-4 text-gray-400" />
-                        <span>{order.shop_name || "N/A"}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span>
-                          {new Date(order.created_at).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    <p className="text-3xl font-bold text-green-600 mt-2 text-center">
-                      Rs. {Number(order.total_amount).toLocaleString()}
-                    </p>
-
-                    <div className="mt-6 border-t border-gray-100 pt-4">
-                      <h5 className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
-                        <Tag className="h-4 w-4 text-green-600" />
-                        Items:
-                      </h5>
-                      <div className="space-y-1 text-sm text-gray-600 max-h-24 overflow-y-auto custom-scrollbar">
-                        {order.items?.map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between p-2 rounded-md bg-gray-50"
-                          >
-                            <span>
-                              {item.quantity}x {item.product_name}
-                            </span>
-                            <span>
-                              Rs. {Number(item.unit_price).toFixed(2)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Status + Payment Controls */}
-                    <div className="space-y-3 mt-4">
-                      <label className="block text-sm font-semibold text-gray-800">
-                        Update Delivery Status:
-                      </label>
-                      <select
-                        value={order.status || ""}
-                        onChange={(e) =>
-                          handleUpdateOrder(order.id, {
-                            status: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 text-sm rounded-md border shadow-sm bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
-                      >
-                        <option value="">-- Select Status --</option>
-                        {Object.entries(ORDER_STATUS).map(([key, label]) => (
-                          <option key={key} value={key}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-
-                      <label className="block text-sm font-semibold text-gray-800">
-                        Update Payment Status:
-                      </label>
-                      <select
-                        value={order.payment_status || "unpaid"}
-                        onChange={(e) =>
-                          handleUpdateOrder(order.id, {
-                            payment_status: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 text-sm rounded-md border shadow-sm bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
-                      >
-                        {Object.entries(PAYMENT_STATUS).map(([key, label]) => (
-                          <option key={key} value={key}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+                    order={order}
+                    onUpdate={(orderId, updates) => handleUpdateOrder(orderId, updates, () => dispatch(fetchDeliveryRiderStats()))}
+                  />
                 ))}
               </div>
             )}

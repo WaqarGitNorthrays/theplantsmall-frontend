@@ -25,6 +25,7 @@ export const login = createAsyncThunk(
       const response = await api.post("/auth/api/login/", {
         identifier,
         password,
+        role,
       });
 
       const { access, refresh, user } = response.data; 
@@ -94,6 +95,9 @@ const authSlice = createSlice({
         state.adminRefresh = localStorage.getItem("adminRefreshToken") || null;
       }
     },
+    clearError: (state) => {
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -118,11 +122,11 @@ const authSlice = createSlice({
         state.refresh = null;
         state.adminAccess = null;
         state.adminRefresh = null;
-        state.error = action.payload; // ✅ API error message displayed
+        state.error = action.payload; 
         state.loading = false;
       });
   },
 });
 
-export const { logout, restoreSession } = authSlice.actions;
+export const { logout, restoreSession, clearError } = authSlice.actions;
 export default authSlice.reducer;

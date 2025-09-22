@@ -1,8 +1,9 @@
 // src/App.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import {Routes, Route, Navigate } from "react-router-dom";
 import { Provider, useSelector } from "react-redux";
 import store from "./store/store";
+import { restoreSession } from "./store/slices/authSlice";
 
 import Login from "./components/Auth/Login";
 import LoginForm from "./components/Auth/LoginForm";
@@ -43,6 +44,11 @@ const AdminRoute = ({ children }) => {
 };
 
 const AppContent = () => {
+  const dispatch = store.dispatch;
+  useEffect(() => {
+    dispatch(restoreSession());
+  }, [dispatch]);
+
   return (
     <Routes>
       {/* -------- PUBLIC ROUTES -------- */}
@@ -72,7 +78,7 @@ const AppContent = () => {
       <Route
         path="/delivery-dashboard"
         element={
-          <PrivateRoute allowedRole="delivery">
+          <PrivateRoute allowedRole="delivery_rider">
             <DeliveryDashboard />
           </PrivateRoute>
         }

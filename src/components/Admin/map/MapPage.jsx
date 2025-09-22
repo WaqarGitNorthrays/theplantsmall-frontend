@@ -74,13 +74,13 @@ const MapPage = () => {
     loadLocations();
 
     // Refresh every 30s
-    const interval = setInterval(loadLocations, 30000);
+    const interval = setInterval(loadLocations, 60000);
 
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 z-0">
       <h3 className="text-xl font-semibold mb-4 text-gray-900">Salesmen Live Locations</h3>
       <div ref={mapRef} className="w-full h-[600px] rounded-lg" />
     </div>

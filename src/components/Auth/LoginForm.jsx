@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { login } from "../../store/slices/authSlice.js";
+import { login, clearError } from "../../store/slices/authSlice.js";
 import { Eye, EyeOff } from "lucide-react";
 
 const LoginForm = () => {
@@ -41,9 +41,13 @@ const LoginForm = () => {
     }
     setLocalError("");
 
+    // Debug: log role value
+    console.log("Login payload:", { identifier, password, role });
+
     try {
       await dispatch(login({ identifier, password, role })).unwrap();
-      navigate(dashboards[role]); // ✅ Only navigate on success
+      dispatch(clearError());
+      navigate(dashboards[role]); // Only navigate on success
     } catch {
       // ❌ Do not parse error again here
       // Redux error already contains the backend message
@@ -51,6 +55,13 @@ const LoginForm = () => {
   };
 
   const displayError = localError || error;
+
+  React.useEffect(() => {
+    // Clear error on mount/unmount
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-emerald-50 to-lime-50 p-4">
@@ -115,7 +126,10 @@ const LoginForm = () => {
 
         <div className="flex justify-between mt-6">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => {
+              dispatch(clearError());
+              navigate("/");
+            }}
             className="text-sm text-gray-500 hover:underline"
           >
             ← Back to role selection

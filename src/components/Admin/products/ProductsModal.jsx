@@ -188,7 +188,7 @@ const AddProductModal = ({ onClose, product }) => {
             )}
           </div>
 
-          {/* Cottons Section */}
+          {/* Cartons Section */}
           <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
             <details className="group" open={showCottonForm || (cottons.length > 0 && product)}>
               <summary
@@ -198,7 +198,7 @@ const AddProductModal = ({ onClose, product }) => {
                   setShowCottonForm(!showCottonForm);
                 }}
               >
-                <span>Cottons</span>
+                <span>Cartons</span>
                 <span className="transform transition-transform duration-200 group-open:rotate-180">
                   <ChevronDown size={20} />
                 </span>
@@ -206,7 +206,7 @@ const AddProductModal = ({ onClose, product }) => {
               <div className="mt-4 space-y-3">
                 {showCottonForm && (
                   <div className="space-y-3 p-3 bg-white rounded-lg shadow-sm border border-gray-100">
-                    <h4 className="text-md font-medium text-gray-700">Add New Cotton Variety</h4>
+                    <h4 className="text-md font-medium text-gray-700">Add New Carton Variety</h4>
                     <input
                       type="text"
                       name="packing_unit"
@@ -236,7 +236,7 @@ const AddProductModal = ({ onClose, product }) => {
                       onClick={addCotton}
                       className="w-full bg-emerald-600 text-white py-2 rounded-md font-medium hover:bg-emerald-700 transition-colors duration-200"
                     >
-                      Save Cotton
+                      Save Carton
                     </button>
                   </div>
                 )}
@@ -262,7 +262,7 @@ const AddProductModal = ({ onClose, product }) => {
                   </div>
                 )}
                 {!showCottonForm && !product && (
-                  <p className="text-gray-500 text-sm italic text-center py-2">Click "Cottons" to add new varieties.</p>
+                  <p className="text-gray-500 text-sm italic text-center py-2">Click "Cartons" to add new varieties.</p>
                 )}
               </div>
             </details>

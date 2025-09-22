@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Leaf, User, Package, Settings, Check } from "lucide-react";
 import { useRealTimeUpdates } from "../../hooks/useRealTimeUpdates.js";
@@ -7,6 +8,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState("");
   const [enableGPS, setEnableGPS] = useState(false);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   // Role cards with updated data and colors
   const roles = [
@@ -35,7 +37,7 @@ const Login = () => {
       features: ["Analytics Dashboard", "System Overview", "Performance Metrics"],
     },
     {
-      id: "delivery",
+      id: "delivery_rider",
       title: "Delivery Rider",
       description: "Handle order deliveries efficiently.",
       icon: Package,
@@ -48,6 +50,15 @@ const Login = () => {
   const handleRoleSelect = (roleId) => {
     setSelectedRole(roleId);
     setEnableGPS(roleId === "salesman");
+    // If authenticated and role matches, redirect to dashboard
+    if (isAuthenticated && user?.role === roleId) {
+      if (roleId === "salesman") navigate("/salesman-dashboard");
+      else if (roleId === "dispatcher") navigate("/dispatcher-dashboard");
+      else if (roleId === "admin") navigate("/admin-dashboard");
+      else if (roleId === "delivery_rider") navigate("/delivery-dashboard");
+      return;
+    }
+    // Otherwise, show login form for that role
     navigate(`/login/${roleId}`);
   };
 

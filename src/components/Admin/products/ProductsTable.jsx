@@ -39,7 +39,7 @@ const ProductsTable = ({ products, error }) => {
               <th className="px-4 py-3 border-b border-r text-gray-500">Discount Price</th>
               <th className="px-4 py-3 border-b border-r text-gray-500">SKU</th>
               <th className="px-4 py-3 border-b border-r text-gray-500">Created At</th>
-              <th className="px-4 py-3 border-b border-r text-gray-500">Cottons</th>
+              <th className="px-4 py-3 border-b border-r text-gray-500">Cartons</th>
               <th className="px-4 py-3 border-b text-gray-500">Actions</th>
             </tr>
           </thead>
@@ -82,7 +82,7 @@ const ProductsTable = ({ products, error }) => {
                         )}
                       </button>
                     ) : (
-                      <span className="text-gray-400">No Cottons</span>
+                      <span className="text-gray-400">No Cartons</span>
                     )}
                   </td>
                   <td className="px-4 py-2 border-b">
@@ -133,14 +133,14 @@ const ProductsTable = ({ products, error }) => {
         {products.map((prod) => (
           <div key={prod.id} className="border border-gray-200 rounded-xl shadow-sm p-4 bg-white transition-all duration-300 transform hover:shadow-md">
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4 flex-grow">
+              <div className="flex items-center gap-4 flex-grow truncate overflow-hidden whitespace-nowrap">
                 <img
                   src={prod.image}
                   alt={prod.name}
                   className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-gray-800 truncate">{prod.name}</h4>
+                  <h4 className="font-bold text-gray-800 truncate overflow-hidden whitespace-nowrap max-w-full">{prod.name}</h4>
                   <p className="text-xs text-gray-500 mt-1">SKU: {prod.sku}</p>
                   <p className="mt-2 text-sm font-medium text-green-600">
                     {prod.discount_price && prod.discount_price !== "0.00"
