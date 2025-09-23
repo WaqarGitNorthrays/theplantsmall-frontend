@@ -8,9 +8,12 @@ import { fetchDashboardStats } from "../../store/slices/dashboardSlice";
 import ProductsPage from "./products/ProductsPage";
 import UsersPage from "./users/UsersPage";
 import MapPage from "./map/MapPage";
+import ShopsPage from "./shops/ShopsPage";
+import ShopDetailsPage from "./shops/ShopDetailsPage";
+
 import {
   BarChart3,
-  TrendingUp,
+  TrendingUp, 
   Users,
   Store,
   Package,
@@ -275,6 +278,8 @@ const AdminDashboard = () => {
             <Route path="users" element={<UsersPage />} />
             <Route path="products" element={<ProductsPage />} />
             <Route path="map" element={<MapPage />} />
+            <Route path="shops" element={<ShopsPage />} />
+              <Route path="shops/:shopId" element={<ShopDetailsPage />} /> 
           </Routes>
         </div>
       </div>

@@ -84,13 +84,14 @@ export default function DeliveryOrderCard({ order, onUpdate }) {
         <label className="block text-sm font-semibold text-gray-800">
           Update Delivery Status:
         </label>
-        <div className="relative">
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-auto">
             <Tag className="h-5 w-5 text-gray-400" />
           </div>
           <select
             value={localStatus}
             onChange={(e) => {
+              e.stopPropagation();
               const val = e.target.value;
               // Only allow 'ready' and 'delivered', ignore empty
               if (val === "ready" || val === "delivered") {
@@ -107,13 +108,16 @@ export default function DeliveryOrderCard({ order, onUpdate }) {
         <label className="block text-sm font-semibold text-gray-800">
           Update Payment Status:
         </label>
-        <div className="relative">
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             {/* <DollarSign className="h-5 w-5 text-gray-400" /> */}
           </div>
           <select
             value={localPayment}
-            onChange={(e) => setLocalPayment(e.target.value)}
+            onChange={(e) => {
+              e.stopPropagation();
+              setLocalPayment(e.target.value);
+            }}
             className="block w-full px-4 py-2 pl-4 border border-gray-300 rounded-lg bg-gray-50 appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
           >
             <option value="">Select Payment Status</option>
@@ -126,7 +130,11 @@ export default function DeliveryOrderCard({ order, onUpdate }) {
         </div>
         <button
           className="mt-2 w-full px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50"
-          onClick={handleSubmit}
+          
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSubmit();
+          }}
           disabled={submitting || localStatus !== "delivered" || !localPayment}
         >
           {submitting ? "Delivering..." : "Deliver Order"}

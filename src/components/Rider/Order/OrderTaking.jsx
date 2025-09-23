@@ -490,30 +490,51 @@ finally {
                 Create a New Order
               </h3>
               {/* Input Type Toggle */}
-              <div className="flex bg-gray-100 rounded-xl p-1 shadow-inner">
-                <button
-                  onClick={() => setInputType("text")}
-                  className={`flex items-center justify-center px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    inputType === "text"
-                      ? "bg-white text-green-600 shadow-md"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Text
-                </button>
-                <button
-                  onClick={() => setInputType("voice")}
-                  className={`flex items-center justify-center px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    inputType === "voice"
-                      ? "bg-white text-green-600 shadow-md"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  <Mic className="h-4 w-4 mr-2" />
-                  Voice
-                </button>
-              </div>
+<div className="flex bg-gray-100 rounded-xl p-1 shadow-inner">
+  <button
+    onClick={() => {
+      if (inputType === "voice") {
+        // Clear voice data when switching to text
+        voiceNotes.forEach((note) => URL.revokeObjectURL(note.url));
+        setVoiceNotes([]);
+        setVoiceOrderParsed([]);
+        setUnavailableVoiceItems([]);
+        setVoiceProcessing(false);
+        setIsRecording(false); 
+      }
+      setInputType("text");
+    }}
+    className={`flex items-center justify-center px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+      inputType === "text"
+        ? "bg-white text-green-600 shadow-md"
+        : "text-gray-500 hover:text-gray-700"
+    }`}
+  >
+    <MessageSquare className="h-4 w-4 mr-2" />
+    Text
+  </button>
+  <button
+    onClick={() => {
+      if (inputType === "text") {
+        // Optional: Clear text data if switching to voice (e.g., reset form)
+        // setOrderItems([]);
+        // setNewItem({ productId: "", name: "", quantity: 1, price: 0, size: "" });
+        // setSelectedProduct(null);
+        // setSelectedCotton(null);
+        // setMinPrice(0);
+      }
+      setInputType("voice");
+    }}
+    className={`flex items-center justify-center px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+      inputType === "voice"
+        ? "bg-white text-green-600 shadow-md"
+        : "text-gray-500 hover:text-gray-700"
+    }`}
+  >
+    <Mic className="h-4 w-4 mr-2" />
+    Voice
+  </button>
+</div>
             </div>
 
             {/* Shop Info Card */}

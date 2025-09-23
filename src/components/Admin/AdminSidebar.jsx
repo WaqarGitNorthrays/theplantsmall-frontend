@@ -1,7 +1,7 @@
 // src/components/Admin/AdminSidebar.jsx
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Grid, UserPlus, ShoppingBag, Layers, X } from "lucide-react";
+import { Grid, UserPlus, ShoppingBag, Layers, X, Store  } from "lucide-react";
 
 const AdminSidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
@@ -11,8 +11,9 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }) => {
     { key: "users", label: "Users", icon: <UserPlus className="h-5 w-5" /> },
     { key: "products", label: "Products", icon: <ShoppingBag className="h-5 w-5" /> },
     { key: "map", label: "Map", icon: <Layers className="h-5 w-5" /> },
+    { key: "shops", label: "Shops", icon: <Store className="h-5 w-5" /> },
   ];
-
+ 
   return (
     <aside
       className={`bg-white shadow-sm border-r border-gray-100 rounded-xl

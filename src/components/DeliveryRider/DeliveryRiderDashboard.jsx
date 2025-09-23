@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import DeliveryOrderCard from "./DeliveryOrderCard";
 import { ORDER_STATUS, PAYMENT_STATUS } from "./DeliveryRiderDashboard.constants";
+import OrderDetailModal from "../Admin/OrderDetailModal.jsx";
 
 export default function DeliveryRiderDashboard() {
   const dispatch = useDispatch();
@@ -36,6 +37,8 @@ export default function DeliveryRiderDashboard() {
   // Local state
   const [statusFilter, setStatusFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
 
   const totalPages = Math.ceil(count / pageSize);
 
@@ -231,11 +234,13 @@ export default function DeliveryRiderDashboard() {
             {!loading && !error && filteredOrders.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredOrders.map((order) => (
-                  <DeliveryOrderCard
-                    key={order.id}
-                    order={order}
-                    onUpdate={(orderId, updates) => handleUpdateOrder(orderId, updates, () => dispatch(fetchDeliveryRiderStats()))}
-                  />
+                  <div key={order.id} onClick={() => setSelectedOrder(order)} className="cursor-pointer">
+                    <DeliveryOrderCard
+                      order={order}
+                      paymentStatusOptions={PAYMENT_STATUS}
+                      onUpdate={(orderId, updates) => handleUpdateOrder(orderId, updates, () => dispatch(fetchDeliveryRiderStats()))}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -267,6 +272,14 @@ export default function DeliveryRiderDashboard() {
           </div>
         )}
       </div>
+
+      {selectedOrder && (
+        <OrderDetailModal
+          order={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+        />
+      )}
+
     </Layout>
   );
 }

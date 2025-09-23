@@ -140,68 +140,71 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
     setFormData((p) => ({ ...p, [name]: value }));
   };
 
-  const handleVoiceInput = (field) => {
-    if (!("webkitSpeechRecognition" in window)) {
-      toast.error("Voice recognition not supported in this browser.");
-      return;
+const handleVoiceInput = (field, isNumeric = false) => {
+  if (!("webkitSpeechRecognition" in window)) {
+    toast.error("Voice recognition not supported in this browser.");
+    return;
+  }
+
+  if (recordingField === field && recognitionRef.current) {
+    recognitionRef.current.stop();
+    return;
+  }
+
+  const recognition = new window.webkitSpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognitionRef.current = recognition;
+
+  let finalTranscript = "";
+
+  recognition.onstart = () => setRecordingField(field);
+
+  recognition.onend = () => {
+    setRecordingField(null);
+    recognitionRef.current = null;
+
+    if (!finalTranscript) return;
+
+    let valueToSet = finalTranscript;
+
+    if (isNumeric) {
+      // Convert spoken numbers to digits
+      valueToSet = valueToSet
+        .toLowerCase()
+        .replace(/\bzero\b/g, "0")
+        .replace(/\bone\b/g, "1")
+        .replace(/\btwo\b/g, "2")
+        .replace(/\bthree\b/g, "3")
+        .replace(/\bfour\b/g, "4")
+        .replace(/\bfive\b/g, "5")
+        .replace(/\bsix\b/g, "6")
+        .replace(/\bseven\b/g, "7")
+        .replace(/\beight\b/g, "8")
+        .replace(/\bnine\b/g, "9");
+
+      // Keep only digits
+      valueToSet = valueToSet.replace(/\D/g, "");
+    } else {
+      valueToSet = valueToSet.trim();
     }
-    // If already recording this field, stop
-    if (recordingField === field && recognitionRef.current) {
-      recognitionRef.current.stop();
-      return;
-    }
-    // Start new recognition
-    const recognition = new window.webkitSpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognitionRef.current = recognition;
-    let finalTranscript = "";
-    recognition.onstart = () => {
-      setRecordingField(field);
-    };
-    recognition.onend = () => {
-      setRecordingField(null);
-      recognitionRef.current = null;
-      if (finalTranscript) {
-        // Detect Urdu script (basic check for Urdu Unicode range)
-        const urduRegex = /[\u0600-\u06FF]/;
-        if (urduRegex.test(finalTranscript)) {
-          // If Urdu detected, re-run recognition in Urdu
-          const urduRecognition = new window.webkitSpeechRecognition();
-          urduRecognition.lang = "ur-PK";
-          urduRecognition.continuous = true;
-          urduRecognition.interimResults = true;
-          recognitionRef.current = urduRecognition;
-          let urduFinal = "";
-          urduRecognition.onstart = () => setRecordingField(field);
-          urduRecognition.onend = () => {
-            setRecordingField(null);
-            recognitionRef.current = null;
-            if (urduFinal) setFormData((prev) => ({ ...prev, [field]: urduFinal }));
-          };
-          urduRecognition.onresult = (ev) => {
-            for (let i = ev.resultIndex; i < ev.results.length; ++i) {
-              if (ev.results[i].isFinal) {
-                urduFinal += ev.results[i][0].transcript;
-              }
-            }
-          };
-          urduRecognition.start();
-        } else {
-          setFormData((prev) => ({ ...prev, [field]: finalTranscript }));
-        }
-      }
-    };
-    recognition.onresult = (event) => {
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        }
-      }
-    };
-    recognition.start();
+
+    setFormData((prev) => ({ ...prev, [field]: valueToSet }));
   };
+
+  recognition.onresult = (event) => {
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript + " ";
+      }
+    }
+  };
+
+  recognition.start();
+};
+
+
 
   const handleFrontImageUpload = (e) => {
     const file = e.target.files?.[0];
@@ -519,7 +522,7 @@ try {
             <input type="text" name="name" value={formData.name} onChange={handleChange} required className="flex-1 min-w-0 px-4 py-3 border rounded-lg" placeholder="Enter shop name" />
             <button
               type="button"
-              onClick={() => handleVoiceInput("name")}
+              onClick={() => handleVoiceInput("name", false)}
               className={`flex-shrink-0 p-3 rounded-lg border transition-colors duration-200 ${recordingField === 'name' ? 'bg-green-600 border-green-700' : 'bg-gray-100 border-gray-300'} flex items-center justify-center`}
               aria-label={recordingField === 'name' ? 'Stop Recording' : 'Start Recording'}
             >
@@ -541,7 +544,7 @@ try {
             <input type="text" name="ownerName" value={formData.ownerName} onChange={handleChange} required className="flex-1 min-w-0 px-4 py-3 border rounded-lg" placeholder="Enter owner name" />
             <button
               type="button"
-              onClick={() => handleVoiceInput("ownerName")}
+              onClick={() => handleVoiceInput("ownerName", false)}
               className={`flex-shrink-0 p-3 rounded-lg border transition-colors duration-200 ${recordingField === 'ownerName' ? 'bg-green-600 border-green-700' : 'bg-gray-100 border-gray-300'} flex items-center justify-center`}
               aria-label={recordingField === 'ownerName' ? 'Stop Recording' : 'Start Recording'}
             >
@@ -557,52 +560,49 @@ try {
         </div>
 
 
-
         {/* Owner Phone */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Owner Phone</label>
-            <div className="flex gap-2 items-center">
-              <input
-                type="tel"
-                name="ownerPhone"
-                value={formData.ownerPhone}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (/^\d*$/.test(value)) {
-                    // Only digits allowed
-                    handleChange({ target: { name: "ownerPhone", value } });
-                    setPhoneError(""); // clear error if valid
-                  } else {
-                    setPhoneError("Only digits are allowed!");
-                  }
-                }}
-                required
-                className="flex-1 min-w-0 px-4 py-3 border rounded-lg"
-                placeholder="Enter phone number"
-              />
-              <button
-                type="button"
-                onClick={() => handleVoiceInput("ownerPhone")}
-                className={`flex-shrink-0 p-3 rounded-lg border transition-colors duration-200 ${
-                  recordingField === "ownerPhone"
-                    ? "bg-green-600 border-green-700"
-                    : "bg-gray-100 border-gray-300"
-                } flex items-center justify-center`}
-                aria-label={recordingField === "ownerPhone" ? "Stop Recording" : "Start Recording"}
-              >
-                {recordingField === "ownerPhone" ? (
-                  <svg className="h-5 w-5 text-white animate-pulse" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="12" r="8" />
-                  </svg>
-                ) : (
-                  <Mic className="h-5 w-5 text-gray-600" />
-                )}
-              </button>
-            </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Owner Phone</label>
+          <div className="flex gap-2 items-center">
+            <input
+              type="tel"
+              name="ownerPhone"
+              value={formData.ownerPhone}
+              onChange={(e) => {
+                // Keep only digits
+                const digitsOnly = e.target.value.replace(/\D/g, "");
+                handleChange({ target: { name: "ownerPhone", value: digitsOnly } });
+                setPhoneError(""); // clear error
+              }}
+              required
+              className="flex-1 min-w-0 px-4 py-3 border rounded-lg"
+              placeholder="Enter phone number"
+            />
 
-            {/* Error message */}
-            {phoneError && <p className="text-red-500 text-sm mt-1">{phoneError}</p>}
+            <button
+              type="button"
+              onClick={() => handleVoiceInput("ownerPhone", true)}
+              className={`flex-shrink-0 p-3 rounded-lg border transition-colors duration-200 ${
+                recordingField === "ownerPhone"
+                  ? "bg-green-600 border-green-700"
+                  : "bg-gray-100 border-gray-300"
+              } flex items-center justify-center`}
+              aria-label={recordingField === "ownerPhone" ? "Stop Recording" : "Start Recording"}
+            >
+              {recordingField === "ownerPhone" ? (
+                <svg className="h-5 w-5 text-white animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="8" />
+                </svg>
+              ) : (
+                <Mic className="h-5 w-5 text-gray-600" />
+              )}
+            </button>
           </div>
+
+          {/* Error message */}
+          {phoneError && <p className="text-red-500 text-sm mt-1">{phoneError}</p>}
+        </div>
+
 
 
                   {/* ✅ WhatsApp checkbox */}

@@ -10,6 +10,7 @@ import {
 import { fetchDispatcherStats } from "../../store/slices/dispatcherStatsSlice";
 import { fetchRiders } from "../../store/slices/riderSlice";
 import Layout from "../Layout/Layout.jsx";
+import OrderDetailModal from "../Admin/OrderDetailModal.jsx";
 import {
   Package,
   Clock,
@@ -41,6 +42,8 @@ export default function DispatcherDashboard() {
   // Local state
   const [filter, setFilter] = useState("all");
   const [riderAssignments, setRiderAssignments] = useState({});
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
 
   const totalPages = Math.ceil(count / pageSize);
 
@@ -207,12 +210,14 @@ export default function DispatcherDashboard() {
               </div>
             )}
 
+
             {!loading && !error && filteredOrders.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredOrders.map((order) => (
                   <div
                     key={order.id}
                     className="border-2 border-transparent rounded-xl p-6 bg-white shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
+                    onClick={() => setSelectedOrder(order)}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-bold text-gray-900 text-lg">
@@ -263,7 +268,7 @@ export default function DispatcherDashboard() {
                       <label className="block text-sm font-semibold text-gray-800">
                         Update Status:
                       </label>
-                      <div className="relative">
+                      <div className="relative" onClick={(e) => e.stopPropagation()}>
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                           <Tag className="h-5 w-5 text-gray-400" />
                         </div>
@@ -282,7 +287,7 @@ export default function DispatcherDashboard() {
                       </div>
 
                       {riderAssignments[order.id] !== undefined && (
-                        <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200" onClick={(e) => e.stopPropagation()}>
                           <label className="block text-sm font-semibold text-gray-800 mb-1">
                             Assign Rider:
                           </label>
@@ -310,6 +315,7 @@ export default function DispatcherDashboard() {
                             </select>
                           </div>
                           <button
+
                             onClick={() => handleAssignRider(order.id)}
                             disabled={!riderAssignments[order.id]}
                             className="mt-3 w-full px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -324,6 +330,7 @@ export default function DispatcherDashboard() {
                 ))}
               </div>
             )}
+
           </div>
         </div>
         
@@ -352,6 +359,14 @@ export default function DispatcherDashboard() {
           </div>
         )}
       </div>
+
+      {selectedOrder && (
+  <OrderDetailModal
+    order={selectedOrder}
+    onClose={() => setSelectedOrder(null)}
+  />
+)}
+
     </Layout>
   );
 }
