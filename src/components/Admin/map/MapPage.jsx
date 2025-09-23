@@ -4,6 +4,17 @@ import L from "leaflet";
 import api from "../../../utils/axiosInstance";
 
 import "leaflet/dist/leaflet.css";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
+
 
 const MapPage = () => {
   const mapRef = useRef(null);
@@ -66,7 +77,7 @@ const MapPage = () => {
           mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
         }
       } catch (err) {
-        console.error("❌ Error loading locations:", err);
+        console.error("Error loading locations:", err);
       }
     };
 
@@ -82,7 +93,7 @@ const MapPage = () => {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 z-0">
       <h3 className="text-xl font-semibold mb-4 text-gray-900">Salesmen Live Locations</h3>
-      <div ref={mapRef} className="w-full h-[600px] rounded-lg" />
+      <div ref={mapRef} className="w-full h-[600px] rounded-lg z-0" />
     </div>
   );
 };

@@ -272,7 +272,7 @@ export default function DispatcherDashboard() {
                           onChange={(e) => handleStatusChange(order, e.target.value)}
                           className="cursor-pointer block w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg bg-gray-50 appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"
                         >
-                          <option value="" >-- Select Status --</option>
+                          <option value="" >Select Status</option>
                           {Object.entries(ORDER_STATUS).map(([key, label]) => (
                             <option key={key} value={key}>
                               {label}

@@ -75,7 +75,7 @@ export default function DeliveryRiderDashboard() {
         toast.error(res.error.message || "Failed to update order");
         return false;
       } else {
-        toast.success("Order marked as Delivered");
+        toast.success("Order Delivered Successfully");
         if (refreshStats) refreshStats();
         return true;
       }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../utils/axiosInstance";
+import { toast } from "react-toastify";
 
 export default function StatusModal({ order, newStatus, onClose, onConfirm }) {
   const [dispatchers, setDispatchers] = useState([]);
@@ -21,7 +22,7 @@ export default function StatusModal({ order, newStatus, onClose, onConfirm }) {
 
   const handleConfirm = () => {
     if (newStatus === "confirmed" && !selectedDispatcher) {
-      alert("Please select a dispatcher before confirming.");
+      toast.success("Please select a dispatcher before confirming.");
       return;
     }
     onConfirm({

@@ -95,6 +95,14 @@ const AppContent = () => {
           </AdminRoute>
         }
       />
+      <Route
+        path="/admin-dashboard/*"
+        element={
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        }
+      />
 
       {/* -------- NESTED PROTECTED ROUTES -------- */}
       <Route
