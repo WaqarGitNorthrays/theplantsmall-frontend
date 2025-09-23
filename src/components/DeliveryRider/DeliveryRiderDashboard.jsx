@@ -15,7 +15,7 @@ import {
   CheckCircle,
   Filter,
   Clock,
-  DollarSign,
+  ShoppingCart,
 } from "lucide-react";
 import DeliveryOrderCard from "./DeliveryOrderCard";
 import { ORDER_STATUS, PAYMENT_STATUS } from "./DeliveryRiderDashboard.constants";
@@ -131,7 +131,7 @@ export default function DeliveryRiderDashboard() {
                   {stats.ready}
                 </p>
               </div>
-              <CheckCircle className="h-16 w-16 text-gray-200 group-hover:text-lime-300 transition-colors duration-300" />
+              <CheckCircle className="h-16 w-16 text-green-500 group-hover:text-green-700 transition-colors duration-300" />
             </div>
           </div>
           {/* RESOLVED: Changed "Delivered" card to "Preparing" to match API data */}
@@ -143,7 +143,7 @@ export default function DeliveryRiderDashboard() {
                   {stats.delivered}
                 </p>
               </div>
-              <Clock className="h-16 w-16 text-gray-200 group-hover:text-yellow-300 transition-colors duration-300" />
+              <Clock className="h-16 w-16 text-green-500 group-hover:text-green-700 transition-colors duration-300" />
             </div>
           </div>
           <div className="relative p-6 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden group">
@@ -156,7 +156,7 @@ export default function DeliveryRiderDashboard() {
                   {stats.total_orders}
                 </p>
               </div>
-              <Package className="h-16 w-16 text-gray-200 group-hover:text-blue-300 transition-colors duration-300" />
+              <Package className="h-16 w-16 text-green-500 group-hover:text-green-700 transition-colors duration-300" />
             </div>
           </div>
           <div className="relative p-6 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden group">
@@ -169,7 +169,7 @@ export default function DeliveryRiderDashboard() {
                   {stats.orders_today}
                 </p>
               </div>
-              <DollarSign className="h-16 w-16 text-gray-200 group-hover:text-purple-300 transition-colors duration-300" />
+              <ShoppingCart className="h-16 w-16 text-green-500 group-hover:text-green-700 transition-colors duration-300" />
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ import AlertMessage from "../common/AlertMessage.jsx";
 import GpsCapture from "./GpsCapture.jsx";
 import VoiceNotesSection from "./VoiceNotesSection.jsx";
 import api from "../../utils/axiosInstance.js";
+import { toast } from "react-toastify";
 
 async function computeHash(blob) {
   const buffer = await blob.arrayBuffer();
@@ -141,7 +142,7 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
 
   const handleVoiceInput = (field) => {
     if (!("webkitSpeechRecognition" in window)) {
-      alert("Voice recognition not supported in this browser.");
+      toast.error("Voice recognition not supported in this browser.");
       return;
     }
     // If already recording this field, stop

@@ -1,6 +1,7 @@
 // VoiceNotesSection.jsx
 import React, { useRef, useState } from "react";
 import { Mic } from "lucide-react";
+import { toast } from "react-toastify";
 
 const VoiceNotesSection = ({ 
   voiceNotes, 
@@ -15,7 +16,7 @@ const VoiceNotesSection = ({
   const startRecording = async () => {
 
           if (voiceNotes.length >= 1) {
-            alert("⚠️ You can only record one voice note.");
+            toast.error("You can only record one voice note.");
             return;
           }
     try {

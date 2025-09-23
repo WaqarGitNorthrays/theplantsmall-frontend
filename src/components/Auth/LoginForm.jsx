@@ -32,7 +32,7 @@ const LoginForm = () => {
     salesman: "Salesman",
     dispatcher: "Dispatcher",
     admin: "Admin",
-    delivery: "Delivery Rider",
+    delivery_rider: "Delivery Rider",
   };
 
   const handleSubmit = async (e) => {

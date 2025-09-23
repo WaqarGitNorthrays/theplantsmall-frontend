@@ -24,10 +24,12 @@ const Layout = ({ children, title }) => {
 
   const getRoleColor = (role) => {
     switch (role) {
-      case "salesman":
+      case "sales_man":
         return "text-emerald-600";
       case "dispatcher":
         return "text-lime-600";
+      case "delivery_rider":
+        return "text-green-600";
       case "admin":
         return "text-green-600";
       default:
@@ -56,7 +58,8 @@ const Layout = ({ children, title }) => {
                   {user?.name || user?.username}
                 </p>
                 <p className={`text-xs capitalize ${getRoleColor(user?.role)}`}>
-                  {user?.role === "sales_man" ? "Salesman" : user?.role}
+                  {user?.role === "sales_man" ? "Salesman" : user?.role === "delivery_rider" ? "Delivery Rider" : user?.role}
+                  
                 </p>
               </div>
 
