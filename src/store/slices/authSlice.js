@@ -31,6 +31,12 @@ export const login = createAsyncThunk(
       const { access, refresh, user } = response.data; 
       const userData = { ...user, role };
 
+            // 🔥 Clear stale tokens first
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("adminAccessToken");
+      localStorage.removeItem("adminRefreshToken");
+
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
 

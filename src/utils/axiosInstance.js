@@ -75,7 +75,7 @@ api.interceptors.response.use(
           return Promise.reject(error); // ✅ send backend error instead of throwing
         }
 
-        const { data } = await axios.post("http://192.168.2.7/auth/api/refresh/", {
+        const { data } = await api.post("/auth/api/refresh/", {
           refresh: refreshToken,
         });
 
