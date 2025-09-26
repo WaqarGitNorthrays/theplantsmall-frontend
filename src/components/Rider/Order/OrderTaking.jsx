@@ -12,6 +12,7 @@ import {
   Trash2,
   X,
   CheckCircle,
+  Package, ChevronDown,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import GpsCapture from "../GpsCapture.jsx";
@@ -105,23 +106,47 @@ const OrderTaking = ({ shopId, onBack, onOrderSuccess }) => {
     }));
   };
 
-  const handleQuantityChange = (quantity, type) => {
-    const parsedQty = parseInt(quantity) || 1;
-    const isCarton = type === "carton";
-    const carton = isCarton && selectedVariant?.cartons?.[0];
-    const defaultPrice = isCarton && carton ? parseFloat(carton.price) : (selectedVariant?.loose?.price ? parseFloat(selectedVariant.loose.price) : 0);
-    setNewItem((prev) => {
-      const typeChanged = isCarton !== prev.is_carton;
-      const newPrice = typeChanged || (!prev.price || prev.price === "") ? defaultPrice.toString() : prev.price;
-      return {
-        ...prev,
-        quantity: parsedQty,
-        is_carton: isCarton,
-        carton_id: isCarton && carton ? carton.id : "",
-        price: newPrice,
-      };
-    });
-  };
+const handleQuantityChange = (quantity, type) => {
+  // Allow empty string so user can clear input
+  if (quantity === "") {
+    setNewItem((prev) => ({
+      ...prev,
+      quantity: "",
+      is_carton: type === "carton",
+    }));
+    return;
+  }
+
+  const parsedQty = parseInt(quantity, 10);
+
+  // If it's not a number or less than 1, ignore
+  if (isNaN(parsedQty) || parsedQty < 1) return;
+
+  const isCarton = type === "carton";
+  const carton = isCarton && selectedVariant?.cartons?.[0];
+
+  const defaultPrice = isCarton && carton
+    ? parseFloat(carton.price)
+    : selectedVariant?.loose?.price
+    ? parseFloat(selectedVariant.loose.price)
+    : 0;
+
+  setNewItem((prev) => {
+    const typeChanged = isCarton !== prev.is_carton;
+    const newPrice =
+      typeChanged || !prev.price || prev.price === ""
+        ? defaultPrice.toString()
+        : prev.price;
+
+    return {
+      ...prev,
+      quantity: parsedQty,
+      is_carton: isCarton,
+      carton_id: isCarton && carton ? carton.id : "",
+      price: newPrice,
+    };
+  });
+};
 
   const handlePriceChange = (price) => {
     const parsedPrice = price ? parseFloat(price) : "";
@@ -413,7 +438,7 @@ const OrderTaking = ({ shopId, onBack, onOrderSuccess }) => {
   };
 
   return (
-    <div className="p-6 sm:p-8 max-w-7xl mx-auto bg-gray-50 rounded-2xl shadow-lg">
+    <div className="p-1 sm:p-8 max-w-7xl mx-auto ">
       {/* Tabs */}
       <div className="flex space-x-2 border-b-2 border-gray-100 mb-6">
         <button
@@ -527,50 +552,80 @@ const OrderTaking = ({ shopId, onBack, onOrderSuccess }) => {
               <h4 className="text-lg font-semibold text-gray-800">Add Items</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 {/* Product Dropdown */}
-                <div>
-                  <label htmlFor="product-select" className="block text-sm font-medium text-gray-700 mb-1">
-                    Product
-                  </label>
-                  <select
-                    id="product-select"
-                    value={newItem.productId}
-                    onChange={(e) => handleProductChange(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 bg-white transition-colors"
-                  >
-                    <option value="" disabled>Select Product</option>
-                    {productsLoading && <option>Loading...</option>}
-                    {productsError && <option disabled>Error loading products</option>}
-                    {!productsLoading &&
-                      !productsError &&
-                      products
-                        .filter((p) => p.variants_data && p.variants_data.length > 0)
-                        .map((product) => (
-                          <option key={product.id} value={product.id}>
-                            {product.name}
-                          </option>
-                        ))}
-                  </select>
-                </div>
+                  <div>
+                    <label
+                      htmlFor="product-select"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Product
+                    </label>
+
+                    <div className="relative">
+                      <select
+                        id="product-select"
+                        value={newItem.productId}
+                        onChange={(e) => handleProductChange(e.target.value)}
+                        className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg shadow-sm 
+                                  focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 bg-white 
+                                  text-gray-700 text-sm appearance-none transition-colors"
+                      >
+                        <option value="" disabled>
+                          Select Product
+                        </option>
+                        {productsLoading && <option>Loading...</option>}
+                        {productsError && <option disabled>Error loading products</option>}
+                        {!productsLoading &&
+                          !productsError &&
+                          products
+                            .filter((p) => p.variants_data && p.variants_data.length > 0)
+                            .map((product) => (
+                              <option key={product.id} value={product.id}>
+                                {product.name}
+                              </option>
+                            ))}
+                      </select>
+
+                      {/* Custom arrow */}
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+                    </div>
+                  </div>
 
                 {/* Variant Dropdown */}
                 <div>
-                  <label htmlFor="variant-select" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="variant-select"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Size
                   </label>
-                  <select
-                    id="variant-select"
-                    value={newItem.variantId}
-                    onChange={(e) => handleVariantChange(e.target.value)}
-                    disabled={!selectedProduct}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 bg-white transition-colors disabled:bg-gray-200 disabled:cursor-not-allowed"
-                  >
-                    <option value="" disabled>Select Size</option>
-                    {selectedProduct?.variants_data.map((variant) => (
-                      <option key={variant.id} value={variant.id}>
-                        {`${variant.size}${variant.weight_unit}`}
+
+                  <div className="relative">
+                    {/* Left icon */}
+                    {/* <Box className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" /> */}
+
+                    <select
+                      id="variant-select"
+                      value={newItem.variantId}
+                      onChange={(e) => handleVariantChange(e.target.value)}
+                      disabled={!selectedProduct}
+                      className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg shadow-sm 
+                                focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 bg-white 
+                                text-gray-700 text-sm appearance-none transition-colors
+                                disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    >
+                      <option value="" disabled>
+                        Select Size
                       </option>
-                    ))}
-                  </select>
+                      {selectedProduct?.variants_data.map((variant) => (
+                        <option key={variant.id} value={variant.id}>
+                          {`${variant.size}${variant.weight_unit}`}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Custom arrow */}
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+                  </div>
                 </div>
 
                 {/* Loose Quantity */}
@@ -581,7 +636,7 @@ const OrderTaking = ({ shopId, onBack, onOrderSuccess }) => {
                   <input
                     id="loose-quantity"
                     type="number"
-                    min="1"
+                    // min="1"
                     value={newItem.is_carton ? "" : newItem.quantity}
                     onChange={(e) => handleQuantityChange(e.target.value, "loose")}
                     disabled={newItem.is_carton || !selectedVariant}
@@ -598,7 +653,7 @@ const OrderTaking = ({ shopId, onBack, onOrderSuccess }) => {
                   <input
                     id="carton-quantity"
                     type="number"
-                    min="1"
+                    // min="1"
                     value={newItem.is_carton ? newItem.quantity : ""}
                     onChange={(e) => handleQuantityChange(e.target.value, "carton")}
                     disabled={!selectedVariant || !selectedVariant?.cartons?.length}

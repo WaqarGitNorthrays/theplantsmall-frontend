@@ -147,9 +147,9 @@ const RiderDashboard = () => {
             </button>
           </div>
 
-          <div className="p-2 md:p-8 lg:p-12">
+          <div className="p-1 md:p-8 lg:p-12">
             {activeTab === "shops" && !selectedShopId && !editingShop && (
-              <div className="space-y-4">
+              <div className="space-y-4 p-2">
                 {/* Header with Refresh and Register buttons */}
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900">Shops</h3>
@@ -203,7 +203,7 @@ const RiderDashboard = () => {
                       {nearbyShops.map((shop) => (
                         <div
                           key={shop.id}
-                          className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                          className="border border-gray-200 rounded-lg p-2 md:p-4 hover:shadow-md transition-shadow cursor-pointer"
                           onClick={(e) => {
                             if (e.target.closest("button")) return;
                             setSelectedShopId(shop.id);
