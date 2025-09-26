@@ -257,27 +257,37 @@ export default function AllOrders() {
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
               <ChevronDown className="w-4 h-4" />
             </div>
-          </div>
-          
+          </div>         
           {/* Date range */}
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => {
-              dispatch(setPage(1));
-              setStartDate(e.target.value);
-            }}
-            className="border-2 border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-          />
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => {
-              dispatch(setPage(1));
-              setEndDate(e.target.value);
-            }}
-            className="border-2 border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-          />
+              <input
+                type={startDate ? "date" : "text"}
+                placeholder="Start Date (MM/DD/YYYY)"
+                value={startDate}
+                onFocus={(e) => (e.target.type = "date")}
+                onBlur={(e) => {
+                  if (!e.target.value) e.target.type = "text";
+                }}
+                onChange={(e) => {
+                  dispatch(setPage(1));
+                  setStartDate(e.target.value);
+                }}
+                className="border-2 border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+              />
+
+              <input
+                type={endDate ? "date" : "text"}
+                placeholder="End Date (MM/DD/YYYY)"
+                value={endDate}
+                onFocus={(e) => (e.target.type = "date")}
+                onBlur={(e) => {
+                  if (!e.target.value) e.target.type = "text";
+                }}
+                onChange={(e) => {
+                  dispatch(setPage(1));
+                  setEndDate(e.target.value);
+                }}
+                className="border-2 border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+              />
         </div>
       </div>
 

@@ -34,19 +34,18 @@ const ProductDetailsPage = () => {
           className="flex items-center text-emerald-600 hover:text-emerald-700 font-medium transition-colors duration-200"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to Products
         </button>
         <button
           onClick={() => navigate(`/admin-dashboard/products/edit/${id}`)}
           className="flex items-center bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-200"
         >
           <Edit2 className="w-4 h-4 mr-2" />
-          Edit Product
+          Edit
         </button>
       </div>
 
       {/* Product Header */}
-      <div className="bg-white rounded-3xl shadow-lg p-8 flex flex-col lg:flex-row gap-8 items-start">
+      <div className="bg-white rounded-xl md:rounded-2xl shadow-lg p-4 sm:p-6 md:p-8 flex flex-col lg:flex-row gap-8 items-start">
         {product.image ? (
           <img
             src={product.image}
@@ -93,7 +92,7 @@ const ProductDetailsPage = () => {
             {product.variants_data.map((variant) => (
               <div
                 key={variant.id}
-                className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300"
+                className="bg-white rounded-xl md:rounded-2xl shadow-md p-3 md:p-6 border border-gray-100 hover:shadow-xl transition-shadow duration-300"
               >
                 {/* Variant Header */}
                 <div className="flex items-center justify-between mb-4">
@@ -108,7 +107,7 @@ const ProductDetailsPage = () => {
                     <ShoppingBag className="w-5 h-5 text-emerald-500 mr-2" />
                     <span className="font-medium text-gray-800">Loose Product</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
                     <p>
                       <span className="font-medium">Price:</span>{" "}
                       <span className="text-emerald-600 font-semibold">
@@ -143,7 +142,7 @@ const ProductDetailsPage = () => {
                           key={c.id}
                           className="p-4 bg-gray-50 rounded-xl border border-gray-200"
                         >
-                          <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4 text-sm text-gray-700">
                             <p>
                               <span className="font-medium">Price:</span>{" "}
                               <span className="text-emerald-600 font-semibold">Rs {c.price}</span>

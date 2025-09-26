@@ -10,6 +10,7 @@ import {
   Search,
   X,
   User,
+  ChevronDown,
 } from "lucide-react";
 import { formatAddress } from "../../../utils/formatAddress";
 import { useNavigate } from "react-router-dom";
@@ -56,12 +57,12 @@ const ShopsPage = () => {
             ({totalCount})
           </span>
         </h2>
-        <button
+        {/* <button
           onClick={() => dispatch(fetchAllShops({ page, ...filters }))}
-          className="flex items-center px-4 py-2 bg-green-600 text-white rounded-xl shadow hover:bg-green-700 transition"
+          className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-xl shadow hover:bg-green-700 transition"
         >
           <RefreshCcw className="h-4 w-4 mr-2" /> Refresh
-        </button>
+        </button> */}
       </div>
 
       {/* Filters */}
@@ -88,22 +89,36 @@ const ShopsPage = () => {
           </div>
 
           {/* Status */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">
-              Status
-            </label>
-            <select
-              value={filters.status}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, status: e.target.value }))
-              }
-              className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
-            >
-              <option value="">All Status</option>
-              <option value="open">Open</option>
-              <option value="close">Close</option>
-            </select>
-          </div>
+
+            <div>
+              <label
+                htmlFor="status-select"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Status
+              </label>
+
+              <div className="relative">
+                {/* Left icon */}
+                <select
+                  id="status-select"
+                  value={filters.status}
+                  onChange={(e) =>
+                    setFilters((f) => ({ ...f, status: e.target.value }))
+                  }
+                  className="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg shadow-sm 
+                            focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white 
+                            text-gray-700 text-sm appearance-none transition-colors"
+                >
+                  <option value="">All Status</option>
+                  <option value="open">Open</option>
+                  <option value="close">Close</option>
+                </select>
+
+                {/* Custom arrow */}
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+              </div>
+            </div>
 
           {/* Created After */}
           <div>
@@ -111,8 +126,13 @@ const ShopsPage = () => {
               Created After
             </label>
             <input
-              type="date"
+              type={filters.created_after ? "date" : "text"}
+              placeholder="MM/DD/YYYY"
               value={filters.created_after}
+              onFocus={(e) => (e.target.type = "date")}
+              onBlur={(e) => {
+                if (!e.target.value) e.target.type = "text";
+              }}
               onChange={(e) =>
                 setFilters((f) => ({ ...f, created_after: e.target.value }))
               }
@@ -120,20 +140,25 @@ const ShopsPage = () => {
             />
           </div>
 
-          {/* Created Before */}
           <div>
             <label className="block text-sm text-gray-600 mb-1">
               Created Before
             </label>
             <input
-              type="date"
+              type={filters.created_before ? "date" : "text"}
+              placeholder="MM/DD/YYYY"
               value={filters.created_before}
+              onFocus={(e) => (e.target.type = "date")}
+              onBlur={(e) => {
+                if (!e.target.value) e.target.type = "text";
+              }}
               onChange={(e) =>
                 setFilters((f) => ({ ...f, created_before: e.target.value }))
               }
               className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
             />
           </div>
+
 
           {/* Registered By */}
           <div>
