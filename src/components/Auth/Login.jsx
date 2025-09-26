@@ -1,14 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Leaf, User, Package, Settings, Check, ArrowRight } from "lucide-react";
 import { useRealTimeUpdates } from "../../hooks/useRealTimeUpdates";
+import { useTranslation } from "react-i18next";
 
 const Login = () => {
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState("");
   const [enableGPS, setEnableGPS] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+
 
   // Role cards
   const roles = [

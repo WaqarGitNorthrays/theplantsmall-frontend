@@ -1,4 +1,3 @@
-// src/components/admin/AllOrders.jsx
 import { useSelector, useDispatch } from "react-redux";
 import { useEffect, useState } from "react";
 import {
@@ -6,6 +5,7 @@ import {
   updateOrder,
   setPage,
 } from "../../store/slices/ordersSlice";
+import { fetchRiders } from "../../store/slices/riderSlice";
 import {
   ClipboardList,
   Search,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import OrderDetailModal from "./OrderDetailModal.jsx";
 import StatusModal from "./StatusModal";
+import { toast } from "react-toastify";
 
 const ORDER_STATUS = {
   pending: "Pending",
@@ -40,6 +41,7 @@ export default function AllOrders() {
   const { orders, loading, error, page, pageSize, count } = useSelector(
     (state) => state.orders
   );
+  const { riders, loading: ridersLoading } = useSelector((state) => state.riders);
 
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,11 +50,17 @@ export default function AllOrders() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expandedOrderId, setExpandedOrderId] = useState(null);
-
   const [modalOrder, setModalOrder] = useState(null);
   const [modalStatus, setModalStatus] = useState(null);
+  const [modalPaymentStatus, setModalPaymentStatus] = useState(null);
+  const [riderAssignments, setRiderAssignments] = useState({});
 
   const totalPages = Math.ceil(count / pageSize);
+
+  // Fetch riders on component mount
+  useEffect(() => {
+    dispatch(fetchRiders());
+  }, [dispatch]);
 
   // Helper function for status badge color
   const getStatusColor = (status) => {
@@ -80,12 +88,14 @@ export default function AllOrders() {
         return "bg-emerald-100 text-emerald-800";
       case "unpaid":
         return "bg-red-100 text-red-800";
+      case "refunded":
+        return "bg-orange-100 text-orange-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
-  // ✅ fetch orders
+  // Fetch orders
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       dispatch(
@@ -120,17 +130,64 @@ export default function AllOrders() {
     ) {
       setModalOrder(order);
       setModalStatus(newStatus);
+      setModalPaymentStatus(null);
     } else {
       dispatch(updateOrder({ orderId: order.id, updates: { status: newStatus } }));
     }
   };
 
+  const handlePaymentStatusChange = (order, newPaymentStatus) => {
+    if (["unpaid", "paid", "refunded"].includes(newPaymentStatus)) {
+      setModalOrder(order);
+      setModalStatus(null);
+      setModalPaymentStatus(newPaymentStatus);
+    } else {
+      dispatch(updateOrder({ orderId: order.id, updates: { payment_status: newPaymentStatus } }));
+    }
+  };
+
   const handleModalConfirm = (updates) => {
     if (modalOrder) {
-      dispatch(updateOrder({ orderId: modalOrder.id, updates }));
+      dispatch(updateOrder({ orderId: modalOrder.id, updates })).then((res) => {
+        if (!res.error) {
+          toast.success(
+            updates.payment_status
+              ? `Payment status updated to ${updates.payment_status}`
+              : `Order status updated to ${updates.status}`
+          );
+        }
+      });
     }
     setModalOrder(null);
     setModalStatus(null);
+    setModalPaymentStatus(null);
+    setRiderAssignments({});
+  };
+
+  // Handle rider assignment in mobile view
+  const handleAssignRider = (orderId) => {
+    const riderId = riderAssignments[orderId];
+    if (!riderId) {
+      toast.error("Please select a rider before confirming.");
+      return;
+    }
+
+    dispatch(
+      updateOrder({
+        orderId,
+        updates: { status: "ready", delivery_rider: riderId },
+      })
+    ).then((res) => {
+      if (!res.error) {
+        toast.success("Order is Ready for Pickup");
+      }
+    });
+
+    setRiderAssignments((prev) => {
+      const copy = { ...prev };
+      delete copy[orderId];
+      return copy;
+    });
   };
 
   return (
@@ -298,14 +355,37 @@ export default function AllOrders() {
                           ))}
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-700">
-                           <ChevronDown className="w-3 h-3" />
+                          <ChevronDown className="w-3 h-3" />
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getPaymentColor(order.payment_status)}`}>
-                        {PAYMENT_STATUS[order.payment_status] || order.payment_status}
-                      </span>
+                      <div className="relative">
+                        <select
+                          value={order.payment_status}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handlePaymentStatusChange(order, e.target.value);
+                          }}
+                          className={`
+                            px-4 py-1 text-xs font-semibold rounded-full
+                            ${getPaymentColor(order.payment_status)}
+                            border border-transparent
+                            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500
+                            appearance-none pr-8
+                          `}
+                        >
+                          {Object.entries(PAYMENT_STATUS).map(([key, label]) => (
+                            <option key={key} value={key}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-700">
+                          <ChevronDown className="w-3 h-3" />
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 font-semibold text-green-600">
                       Rs. {Number(order.total_amount).toLocaleString()}
@@ -414,6 +494,72 @@ export default function AllOrders() {
                       </div>
                     </div>
                   </div>
+
+                  <div className="mt-4">
+                    <label htmlFor={`payment-status-select-mobile-${order.id}`} className="block text-sm font-semibold text-gray-800 mb-1">
+                      Update Payment Status:
+                    </label>
+                    <div className="relative">
+                      <select
+                        id={`payment-status-select-mobile-${order.id}`}
+                        value={order.payment_status}
+                        onChange={(e) => handlePaymentStatusChange(order, e.target.value)}
+                        className={`
+                          w-full px-4 py-2 text-sm rounded-lg border-2 border-gray-300 shadow-sm
+                          bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-green-500
+                          pr-8 transition-colors
+                        `}
+                      >
+                        {Object.entries(PAYMENT_STATUS).map(([key, label]) => (
+                          <option key={key} value={key}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                        <ChevronDown className="w-4 h-4" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rider Assignment for Mobile View */}
+                  {riderAssignments[order.id] !== undefined && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <label className="block text-sm font-semibold text-gray-800 mb-1">
+                        Assign Rider:
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={riderAssignments[order.id]}
+                          onChange={(e) =>
+                            setRiderAssignments((prev) => ({
+                              ...prev,
+                              [order.id]: e.target.value,
+                            }))
+                          }
+                          className="w-full px-4 py-2 text-sm rounded-lg border-2 border-gray-300 shadow-sm bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 pr-8"
+                        >
+                          <option value="">Select Rider</option>
+                          {ridersLoading && <option disabled>Loading riders...</option>}
+                          {riders.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name} ({r.phone})
+                            </option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                          <ChevronDown className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleAssignRider(order.id)}
+                        disabled={!riderAssignments[order.id]}
+                        className="mt-3 w-full px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Confirm Rider Assignment
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -446,20 +592,23 @@ export default function AllOrders() {
 
       {/* Order Detail Modal */}
       {selectedOrder && (
-        <OrderDetailModal
+        <OrderDetailModal 
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
         />
       )}
 
       {/* Status Modal */}
-      {modalOrder && modalStatus && (
+      {modalOrder && (modalStatus || modalPaymentStatus) && (
         <StatusModal
           order={modalOrder}
           newStatus={modalStatus}
+          newPaymentStatus={modalPaymentStatus}
           onClose={() => {
             setModalOrder(null);
             setModalStatus(null);
+            setModalPaymentStatus(null);
+            setRiderAssignments({});
           }}
           onConfirm={handleModalConfirm}
         />

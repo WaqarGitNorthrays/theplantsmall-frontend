@@ -33,7 +33,7 @@ const UsersPage = () => {
       <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
           <h1 className="text-3xl font-extrabold text-gray-900 mb-4 sm:mb-0">
-            User Management
+            All Users
           </h1>
           <button
             onClick={() => {

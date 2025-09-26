@@ -17,7 +17,7 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }) => {
   return (
     <aside
       className={`bg-white shadow-sm border-r border-gray-100 rounded-xl
-        transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        transform mt-6 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         md:translate-x-0 md:relative md:w-64
         fixed top-0 left-0 h-full w-64 z-30 transition-transform duration-300 ease-in-out`}
     >

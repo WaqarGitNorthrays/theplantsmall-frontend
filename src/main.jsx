@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import "./index.css";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "./i18n.js";
 
 // ✅ Import PWA register helper
 // import { registerSW } from "virtual:pwa-register";

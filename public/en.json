@@ -1,0 +1,28 @@
+{
+  "welcome": "Welcome to",
+  "tagline": "Your all-in-one platform for managing shop registrations, orders, and logistics.",
+  "select": "Select",
+  "footer": "Secure • Fast • Reliable",
+  "roles": {
+    "salesman": {
+      "title": "Salesman",
+      "description": "Manage client relationships and sales.",
+      "features": ["Shop Registration", "Order Taking", "GPS Navigation"]
+    },
+    "dispatcher": {
+      "title": "Dispatcher",
+      "description": "Coordinate orders and manage deliveries.",
+      "features": ["Order Management", "Status Updates", "Real-time Tracking"]
+    },
+    "admin": {
+      "title": "Admin",
+      "description": "Oversee and optimize business operations.",
+      "features": ["Analytics Dashboard", "System Overview", "Performance Metrics"]
+    },
+    "delivery_rider": {
+      "title": "Delivery Rider",
+      "description": "Handle order deliveries efficiently.",
+      "features": ["Route Optimization", "Delivery Status", "Customer Communication"]
+    }
+  }
+}

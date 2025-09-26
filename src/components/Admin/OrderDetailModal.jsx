@@ -7,6 +7,8 @@ import {
   CircleDollarSign,
   User,
   Store,
+  Package2,
+  PackageOpen
 } from "lucide-react";
 import moment from "moment";
 
@@ -47,7 +49,7 @@ const getStatusBadge = (status) => {
 export default function OrderDetailModal({ order, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 sm:p-6 z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-6 md:p-8 relative transform transition-all scale-95 duration-200">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-6 md:p-8 relative transform transition-all scale-95 duration-200" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
         {/* Close button */}
         <button
           onClick={onClose}
@@ -131,8 +133,17 @@ export default function OrderDetailModal({ order, onClose }) {
                     className="flex justify-between items-center bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors duration-200"
                   >
                     <div>
-                      <span className="font-medium text-gray-900">
-                        {item.product_name}
+                     <span className="font-medium text-gray-900 flex items-center gap-2">
+                        {item.product_name} 
+                        {item.cotton != null ? (
+                          <span className="flex items-center text-sm font-normal text-gray-500">
+                            <Package2  className="w-5 h-5 mr-1 text-green-700 font-semibold" /> Carton
+                          </span>
+                        ) : (
+                          <span className="flex items-center text-sm font-normal text-gray-500">
+                            <PackageOpen  className="w-5 h-5 mr-1 text-green-700 font-semibold" /> Loose
+                          </span>
+                        )}
                       </span>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {item.cotton_packing_unit}

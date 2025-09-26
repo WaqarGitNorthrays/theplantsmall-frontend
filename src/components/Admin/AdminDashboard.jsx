@@ -6,10 +6,13 @@ import Layout from "../Layout/Layout";
 import AllOrders from "./AllOrders";
 import { fetchDashboardStats } from "../../store/slices/dashboardSlice";
 import ProductsPage from "./products/ProductsPage";
+import ProductFormPage from "./products/ProductFormPage";
+import ProductDetailsPage from "./products/ProductDetailsPage";
 import UsersPage from "./users/UsersPage";
 import MapPage from "./map/MapPage";
 import ShopsPage from "./shops/ShopsPage";
 import ShopDetailsPage from "./shops/ShopDetailsPage";
+import ShopEditPage from "./shops/ShopEditPage";
 
 import {
   BarChart3,
@@ -90,7 +93,7 @@ const AdminDashboard = () => {
               element={
                 <>
                   {/* Real-time Status */}
-                  <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-6 text-white">
+                  <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-6 text-white md:mt-0" >
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4">
                       <h2 className="text-2xl font-bold mb-2 md:mb-0">
                         Real-time Operations
@@ -277,9 +280,14 @@ const AdminDashboard = () => {
             {/* Other Tabs */}
             <Route path="users" element={<UsersPage />} />
             <Route path="products" element={<ProductsPage />} />
+             
             <Route path="map" element={<MapPage />} />
             <Route path="shops" element={<ShopsPage />} />
               <Route path="shops/:shopId" element={<ShopDetailsPage />} /> 
+              <Route path="shops/:shopId/edit" element={<ShopEditPage />} /> 
+              <Route path="products/new" element={<ProductFormPage />} />
+              <Route path="products/edit/:id" element={<ProductFormPage />} />
+              <Route path="products/:id" element={<ProductDetailsPage />} />
           </Routes>
         </div>
       </div>

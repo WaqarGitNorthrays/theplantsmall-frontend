@@ -22,12 +22,33 @@ export const fetchNearbyShops = createAsyncThunk(
 );
 export const fetchAllShops = createAsyncThunk(
   "shops/fetchAll",
-  async (page = 1, { rejectWithValue }) => {
+  async (
+    {
+      page = 1,
+      pageSize = 10,
+      search,
+      status,
+      created_before,
+      created_after,
+      registered_by,
+    } = {},
+    { rejectWithValue }
+  ) => {
     try {
-      const res = await api.get("/plants-mall-shops/api/shops/", {
-        params: { page },
-      });
-      return res.data;
+      const params = new URLSearchParams();
+      params.append("page", page);
+      params.append("page_size", pageSize);
+      if (search) params.append("query", search);
+      if (status) params.append("status", status);
+      if (created_before) params.append("created_before", created_before);
+      if (created_after) params.append("created_after", created_after);
+      if (registered_by) params.append("registered_by", registered_by);
+
+      const res = await api.get(
+        `/plants-mall-shops/api/shops/?${params.toString()}`
+      );
+
+      return res.data; // { results, count, next, previous }
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message ||
@@ -37,6 +58,7 @@ export const fetchAllShops = createAsyncThunk(
     }
   }
 );
+
 
 export const fetchShopById = createAsyncThunk(
   "shops/fetchById",
@@ -51,8 +73,6 @@ export const fetchShopById = createAsyncThunk(
     }
   }
 );
-
-
 
 
 const shopsSlice = createSlice({
@@ -159,8 +179,9 @@ const shopsSlice = createSlice({
         s.loading = false;
         s.error = a.payload;
       });
+
   },
 });
 
-export const { addShop, updateShop, clearNearbyShops } = shopsSlice.actions;
+export const { addShop, clearNearbyShops, updateShop } = shopsSlice.actions;
 export default shopsSlice.reducer;

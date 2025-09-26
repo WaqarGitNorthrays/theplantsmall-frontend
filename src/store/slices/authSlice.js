@@ -14,6 +14,7 @@ const initialState = {
   adminRefresh: localStorage.getItem("adminRefreshToken") || null,
   error: null,
   loading: false,
+  initializing: true,
 };
 
 //Async thunk for login
@@ -100,6 +101,7 @@ const authSlice = createSlice({
         state.adminAccess = localStorage.getItem("adminAccessToken") || null;
         state.adminRefresh = localStorage.getItem("adminRefreshToken") || null;
       }
+       state.initializing = false; 
     },
     clearError: (state) => {
       state.error = null;
@@ -120,6 +122,7 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.error = null;
         state.loading = false;
+        state.initializing = false; 
       })
       .addCase(login.rejected, (state, action) => {
         state.user = null;
@@ -130,6 +133,7 @@ const authSlice = createSlice({
         state.adminRefresh = null;
         state.error = action.payload; 
         state.loading = false;
+        state.initializing = false;
       });
   },
 });

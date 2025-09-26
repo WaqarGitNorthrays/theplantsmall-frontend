@@ -8,7 +8,7 @@ export const fetchProducts = createAsyncThunk(
   async ({ page = 1, pageSize = 10 } = {}, { rejectWithValue }) => {
     try {
       const response = await api.get(
-        `plants-mall-products/api/products/?page=${page}&page_size=${pageSize}`
+        `plants-mall-products/api/all_products/?page=${page}&page_size=${pageSize}`
       );
       console.log("Fetched products:", response.data);
 
@@ -33,6 +33,37 @@ export const fetchProducts = createAsyncThunk(
   }
 );
 
+// Fetch single product by ID (if needed)
+
+// -------------------- FETCH PRODUCT BY ID --------------------
+export const fetchProductById = createAsyncThunk(
+  "products/fetchProductById",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`plants-mall-products/api/products/${id}/detail/`);
+
+      let product = response.data;
+
+      // ✅ Normalize if product has nested results or missing variants_data
+      if (product?.results) {
+        product = product.results; // sometimes API wraps it
+      }
+
+      // Ensure `variants_data` is always an array
+      if (!Array.isArray(product.variants_data)) {
+        product.variants_data = [];
+      }
+
+      return product;
+    } catch (err) {
+      console.error("Fetch product by id error:", err);
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+
+
 // -------------------- ADD PRODUCT --------------------
 export const addProduct = createAsyncThunk(
   "products/addProduct",
@@ -56,7 +87,7 @@ export const updateProduct = createAsyncThunk(
   async ({ id, productData }, { rejectWithValue }) => {
     try {
       const response = await api.patch(
-        `plants-mall-products/api/products/${id}/`,
+        `plants-mall-products/api/products/${id}/update/`,
         productData
       );
       return response.data; // returns updated product
@@ -71,6 +102,7 @@ const productsSlice = createSlice({
   name: "products",
   initialState: {
     products: [],
+    product: null, 
     count: 0,
     loading: false,
     error: null,
@@ -95,6 +127,21 @@ const productsSlice = createSlice({
         state.count = action.payload.count;
       })
       .addCase(fetchProducts.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error.message;
+      })
+
+      // -------------------- Fetch product by id --------------------
+      .addCase(fetchProductById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.product = null;
+      })
+      .addCase(fetchProductById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.product = action.payload;
+      })
+      .addCase(fetchProductById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || action.error.message;
       })

@@ -27,6 +27,8 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
     frontImagePreview: "",
     insideImages: [],
     deletedInsideImages: [],
+    competitorImages: [],
+    deletedCompetitorImages: [],
     voiceNotes: [],
     existingVoiceNotes: [],
     deletedVoiceNotes: [],
@@ -40,6 +42,8 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [existingImageHashes, setExistingImageHashes] = useState({});
   const [currentImageHashes, setCurrentImageHashes] = useState(new Set());
+  const [existingCompetitorImageHashes, setExistingCompetitorImageHashes] = useState({});
+  const [currentCompetitorImageHashes, setCurrentCompetitorImageHashes] = useState(new Set());
    // ✅ Add this state for error message
   const [phoneError, setPhoneError] = useState("");
 
@@ -58,6 +62,8 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
         frontImagePreview: shop.shop_image || "",
         insideImages: [],
         deletedInsideImages: [],
+        competitorImages: [],
+        deletedCompetitorImages: [],
         voiceNotes: [],
         existingVoiceNotes: shop.voice_notes || [],
         deletedVoiceNotes: [],
@@ -100,6 +106,30 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
     }
   }, [shop, mode]);
 
+  // Compute hashes for existing competitor images in edit mode
+  useEffect(() => {
+    if (mode === "edit" && shop?.competitor_images?.length) {
+      const computeHashes = async () => {
+        const hashes = {};
+        const promises = shop.competitor_images.map(async (img) => {
+          try {
+            const response = await fetch(img.image);
+            if (!response.ok) return;
+            const blob = await response.blob();
+            const hash = await computeHash(blob);
+            hashes[img.id] = hash;
+          } catch (e) {
+            console.error("Failed to hash existing competitor image", img.id, e);
+          }
+        });
+        await Promise.all(promises);
+        setExistingCompetitorImageHashes(hashes);
+        setCurrentCompetitorImageHashes(new Set(Object.values(hashes)));
+      };
+      computeHashes();
+    }
+  }, [shop, mode]);
+
   // Compute all inside images with deduplication by id
   const allInsideImages = useMemo(() => {
     const existing = (shop?.images || [])
@@ -126,6 +156,33 @@ const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
       return true;
     });
   }, [shop?.images, formData.insideImages, formData.deletedInsideImages]);
+
+  // Compute all competitor images with deduplication by id
+  const allCompetitorImages = useMemo(() => {
+    const existing = (shop?.competitor_images || [])
+      .filter((img) => !formData.deletedCompetitorImages.includes(img.id))
+      .map((img) => ({
+        type: "existing",
+        url: img.image,
+        id: `existing-${img.id}`,
+        file: null,
+        originalId: img.id,
+      }));
+
+    const newlyAdded = formData.competitorImages.map((img) => ({
+      type: "new",
+      url: img.preview,
+      id: img.id,
+      file: img.file,
+    }));
+
+    const seen = new Set();
+    return [...existing, ...newlyAdded].filter((img) => {
+      if (seen.has(img.id)) return false;
+      seen.add(img.id);
+      return true;
+    });
+  }, [shop?.competitor_images, formData.competitorImages, formData.deletedCompetitorImages]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -272,6 +329,52 @@ const handleVoiceInput = (field, isNumeric = false) => {
     e.target.value = "";
   };
 
+  const addCompetitorImages = async (files) => {
+    if (!files?.length) return;
+
+    const newImages = [];
+    for (const file of Array.from(files)) {
+      const hash = await computeHash(file);
+      if (currentCompetitorImageHashes.has(hash)) {
+        console.log("Duplicate competitor image detected and skipped");
+        continue;
+      }
+
+      const objectUrl = URL.createObjectURL(file);
+      objectUrlsRef.current.add(objectUrl);
+
+      newImages.push({
+        file,
+        preview: objectUrl,
+        id: hash,
+        hash,
+      });
+    }
+
+    if (newImages.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        competitorImages: [...prev.competitorImages, ...newImages],
+      }));
+
+      setCurrentCompetitorImageHashes((prev) => {
+        const newSet = new Set(prev);
+        newImages.forEach((img) => newSet.add(img.hash));
+        return newSet;
+      });
+    }
+  };
+
+  const handleCompetitorImagesUpload = (e) => {
+    addCompetitorImages(e.target.files);
+    e.target.value = "";
+  };
+
+  const handleCompetitorImageCapture = (e) => {
+    addCompetitorImages(e.target.files);
+    e.target.value = "";
+  };
+
   const removeInsideImage = useCallback(
     (imageToRemove) => {
       let hash;
@@ -304,6 +407,38 @@ const handleVoiceInput = (field, isNumeric = false) => {
     [existingImageHashes]
   );
 
+  const removeCompetitorImage = useCallback(
+    (imageToRemove) => {
+      let hash;
+      if (imageToRemove.type === "existing") {
+        hash = existingCompetitorImageHashes[imageToRemove.originalId];
+        setFormData((prev) => ({
+          ...prev,
+          deletedCompetitorImages: [...prev.deletedCompetitorImages, imageToRemove.originalId],
+        }));
+      } else {
+        hash = imageToRemove.hash;
+        if (imageToRemove.preview?.startsWith("blob:")) {
+          URL.revokeObjectURL(imageToRemove.preview);
+          objectUrlsRef.current.delete(imageToRemove.preview);
+        }
+        setFormData((prev) => ({
+          ...prev,
+          competitorImages: prev.competitorImages.filter((img) => img.id !== imageToRemove.id),
+        }));
+      }
+
+      if (hash) {
+        setCurrentCompetitorImageHashes((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(hash);
+          return newSet;
+        });
+      }
+    },
+    [existingCompetitorImageHashes]
+  );
+
   const handleLocationCaptured = (loc) => {
     setGps(loc);
     if (loc?.address) setShopAddress(loc.address);
@@ -330,6 +465,8 @@ const handleVoiceInput = (field, isNumeric = false) => {
       frontImagePreview: "",
       insideImages: [],
       deletedInsideImages: [],
+      competitorImages: [],
+      deletedCompetitorImages: [],
       voiceNotes: [],
       existingVoiceNotes: [],
       deletedVoiceNotes: [],
@@ -338,6 +475,8 @@ const handleVoiceInput = (field, isNumeric = false) => {
     setShopAddress("");
     setExistingImageHashes({});
     setCurrentImageHashes(new Set());
+    setExistingCompetitorImageHashes({});
+    setCurrentCompetitorImageHashes(new Set());
     hasPrepopulated.current = false;
   }, []);
 
@@ -363,6 +502,8 @@ const handleVoiceInput = (field, isNumeric = false) => {
     if (formData.frontImage) changed.shop_image = formData.frontImage;
     if (formData.insideImages.length) changed.images = formData.insideImages.map((img) => img.file);
     if (formData.deletedInsideImages.length) changed.delete_images = formData.deletedInsideImages;
+    if (formData.competitorImages.length) changed.competitor_images = formData.competitorImages.map((img) => img.file);
+    if (formData.deletedCompetitorImages.length) changed.delete_competitor_images = formData.deletedCompetitorImages;
     if (formData.voiceNotes.length) changed.voice_notes = formData.voiceNotes.map((n) => n.blob);
     if (formData.deletedVoiceNotes.length) changed.delete_voice_notes = formData.deletedVoiceNotes;
 
@@ -373,6 +514,10 @@ const handleVoiceInput = (field, isNumeric = false) => {
     e.preventDefault();
     if (!formData.name || !formData.ownerName || !formData.ownerPhone) {
       setAlert({ message: "Please fill all required fields.", type: "error", visible: true });
+      return;
+    }
+    if (formData.ownerPhone.length !== 11) {
+      setPhoneError("Please enter a valid 11-digit phone number.");
       return;
     }
     if (!gps || gps.status !== "ready") {
@@ -399,6 +544,8 @@ const handleVoiceInput = (field, isNumeric = false) => {
       if (changedFields.shop_image) payload.append("shop_image", changedFields.shop_image);
       if (changedFields.images) changedFields.images.forEach((img) => payload.append("images", img));
       if (changedFields.delete_images) payload.append("delete_images", JSON.stringify(changedFields.delete_images));
+      if (changedFields.competitor_images) changedFields.competitor_images.forEach((img) => payload.append("competitor_images", img));
+      if (changedFields.delete_competitor_images) payload.append("delete_competitor_images", JSON.stringify(changedFields.delete_competitor_images));
       if (changedFields.voice_notes) changedFields.voice_notes.forEach((blob) => payload.append("voice_notes", blob));
       if (changedFields.delete_voice_notes) payload.append("delete_voice_notes", JSON.stringify(changedFields.delete_voice_notes));
     } else {
@@ -413,6 +560,8 @@ const handleVoiceInput = (field, isNumeric = false) => {
       if (formData.frontImage) payload.append("shop_image", formData.frontImage);
       formData.insideImages.forEach((img) => payload.append("images", img.file));
       if (formData.deletedInsideImages.length) payload.append("delete_images", JSON.stringify(formData.deletedInsideImages));
+      formData.competitorImages.forEach((img) => payload.append("competitor_images", img.file));
+      if (formData.deletedCompetitorImages.length) payload.append("delete_competitor_images", JSON.stringify(formData.deletedCompetitorImages));
       formData.voiceNotes.forEach((n) => payload.append("voice_notes", n.blob));
       if (formData.deletedVoiceNotes.length) payload.append("delete_voice_notes", JSON.stringify(formData.deletedVoiceNotes));
     }
@@ -622,7 +771,7 @@ try {
         </div>
 
         {/* Front Image */}
-        <div>
+        <div className="shadow-sm border p-3 rounded-lg">
           <label className="block text-sm font-medium mb-2">Front Image of Shop</label>
           <div className="flex flex-col sm:flex-row gap-3">
             <input id="frontImageUpload" type="file" accept="image/*" onChange={handleFrontImageUpload} className="hidden" />
@@ -638,7 +787,7 @@ try {
         </div>
 
         {/* Inside Images */}
-        <div>
+        <div className="shadow-sm border p-3 rounded-lg">
           <label className="block text-sm font-medium mb-2">Inside Shop Images</label>
           <input id="insideImagesUpload" type="file" accept="image/*" multiple onChange={handleInsideImagesUpload} className="hidden" />
           <label htmlFor="insideImagesUpload" className="flex items-center justify-center px-4 py-3 border rounded-lg cursor-pointer mb-2">
@@ -655,6 +804,32 @@ try {
                 <div key={image.id} className="relative">
                   <img src={image.url} alt={`Inside ${image.id}`} className="h-32 w-full object-cover rounded-lg border" />
                   <button type="button" onClick={() => removeInsideImage(image)} className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full flex items-center justify-center h-6 w-6">
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Competitor Images */}
+        <div className=" shadow-sm border p-3 rounded-lg">
+          <label className="block text-sm font-medium mb-2">Competitor Images</label>
+          <input id="competitorImagesUpload" type="file" accept="image/*" multiple onChange={handleCompetitorImagesUpload} className="hidden" />
+          <label htmlFor="competitorImagesUpload" className="flex items-center justify-center px-4 py-3 border rounded-lg cursor-pointer mb-2">
+            <Upload className="h-5 w-5 mr-2" /> Upload
+          </label>
+          <input id="competitorImageCapture" type="file" accept="image/*" capture="environment" onChange={handleCompetitorImageCapture} className="hidden" />
+          <label htmlFor="competitorImageCapture" className="flex items-center justify-center px-4 py-3 border rounded-lg cursor-pointer">
+            <Camera className="h-5 w-5 mr-2" /> Capture
+          </label>
+
+          {allCompetitorImages.length > 0 && (
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {allCompetitorImages.map((image) => (
+                <div key={image.id} className="relative">
+                  <img src={image.url} alt={`Competitor ${image.id}`} className="h-32 w-full object-cover rounded-lg border" />
+                  <button type="button" onClick={() => removeCompetitorImage(image)} className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full flex items-center justify-center h-6 w-6">
                     <X size={16} />
                   </button>
                 </div>
