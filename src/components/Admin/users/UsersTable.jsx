@@ -1,5 +1,6 @@
 // src/components/UsersTable.jsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Edit,
   Trash2,
@@ -57,6 +58,7 @@ const UsersTable = ({
 }) => {
   const usersArray = Array.isArray(users) ? users : [];
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const navigate = useNavigate();
 
   const handleDropdownToggle = (id) => {
     setOpenDropdownId(openDropdownId === id ? null : id);
@@ -207,7 +209,7 @@ const UsersTable = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              onEdit(user);
+                              navigate(`../users/edit/${user.id}`)
                               setOpenDropdownId(null);
                             }}
                             className="flex items-center px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100"
@@ -226,7 +228,7 @@ const UsersTable = ({
                             role="menuitem"
                           >
                             <Trash2 size={16} className="mr-2 text-red-500" />
-                            Delete
+                            InActive
                           </button>
                         </div>
                       </div>
@@ -326,7 +328,7 @@ const UsersTable = ({
                 className="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-600 py-3 rounded-md font-medium hover:bg-red-100 transition-colors"
                 onClick={() => onDeleteConfirm(user)}
               >
-                <Trash2 size={16} /> Delete
+                InActive
               </button>
             </div>
           </div>

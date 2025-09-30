@@ -17,22 +17,23 @@ const initialState = {
   initializing: true,
 };
 
-//Async thunk for login
-
+// Async thunk for login
 export const login = createAsyncThunk(
   "auth/login",
   async ({ identifier, password, role }, { rejectWithValue }) => {
     try {
+      // 🔹 Send only identifier + password
       const response = await api.post("/auth/api/login/", {
         identifier,
         password,
-        role,
       });
 
-      const { access, refresh, user } = response.data; 
-      const userData = { ...user, role };
+      const { access, refresh, user } = response.data;
 
-            // 🔥 Clear stale tokens first
+      // 🔹 Do NOT overwrite role — trust backend
+      const userData = { ...user };
+
+      // 🔥 Clear stale tokens first
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("adminAccessToken");
@@ -41,7 +42,8 @@ export const login = createAsyncThunk(
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
 
-      if (role === "admin") {
+      // 🔹 Only save admin tokens if backend says role = admin
+      if (user.role === "admin") {
         localStorage.setItem("adminAccessToken", access);
         localStorage.setItem("adminRefreshToken", refresh);
       }
@@ -55,19 +57,18 @@ export const login = createAsyncThunk(
         user: userData,
         access,
         refresh,
-        adminAccess: role === "admin" ? access : null,
-        adminRefresh: role === "admin" ? refresh : null,
+        adminAccess: user.role === "admin" ? access : null,
+        adminRefresh: user.role === "admin" ? refresh : null,
       };
-    } catch(error) {
+    } catch (error) {
       return rejectWithValue(
         error.response?.data?.detail ||
-        error.response?.data?.message ||
-        "Login failed"
+          error.response?.data?.message ||
+          "Login failed"
       );
     }
   }
 );
-
 
 const authSlice = createSlice({
   name: "auth",
@@ -101,7 +102,7 @@ const authSlice = createSlice({
         state.adminAccess = localStorage.getItem("adminAccessToken") || null;
         state.adminRefresh = localStorage.getItem("adminRefreshToken") || null;
       }
-       state.initializing = false; 
+      state.initializing = false;
     },
     clearError: (state) => {
       state.error = null;
@@ -122,7 +123,7 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.error = null;
         state.loading = false;
-        state.initializing = false; 
+        state.initializing = false;
       })
       .addCase(login.rejected, (state, action) => {
         state.user = null;
@@ -131,7 +132,7 @@ const authSlice = createSlice({
         state.refresh = null;
         state.adminAccess = null;
         state.adminRefresh = null;
-        state.error = action.payload; 
+        state.error = action.payload;
         state.loading = false;
         state.initializing = false;
       });

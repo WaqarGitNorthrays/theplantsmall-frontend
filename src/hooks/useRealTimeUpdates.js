@@ -1,13 +1,14 @@
 // hooks/useRealTimeUpdates.js
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { updateSalesmanLocation } from "../store/slices/salesmanSlice";
+import { throttle } from "lodash";
 
 export const useRealTimeUpdates = (salesmanId) => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (!salesmanId) return; // 🚫 Skip if no ID provided
+    if (!salesmanId) return; // 🚫 Skip if no ID
     if (!navigator.geolocation) {
       console.error("Geolocation not supported in this browser.");
       return;
@@ -15,37 +16,35 @@ export const useRealTimeUpdates = (salesmanId) => {
 
     const roundTo6 = (num) => parseFloat(num.toFixed(6));
 
-    const handleSuccess = (pos) => {
+    // ✅ Throttle updates: max once every 5s
+    const handleSuccess = throttle((pos) => {
       const lat = roundTo6(pos.coords.latitude);
       const lng = roundTo6(pos.coords.longitude);
       const accuracy = roundTo6(pos.coords.accuracy);
 
-      const location = { lat, lng, accuracy };
+      // 🚫 Ignore very inaccurate readings (>100m)
+      if (accuracy > 100) return;
 
-      // ✅ Save to Redux so other parts of the app can use it
-      dispatch(updateSalesmanLocation({ salesmanId, location }));
-    };
+      dispatch(updateSalesmanLocation({ salesmanId, location: { lat, lng, accuracy } }));
+    }, 5000);
 
     const handleError = (err) => {
       console.error("GPS error:", err.message);
     };
 
-    // 🔄 Start watching user’s location
-    const watchId = navigator.geolocation.watchPosition(
-      handleSuccess,
-      handleError,
-      {
-        enableHighAccuracy: true,
-        maximumAge: 5000, // allow cached positions up to 5s old
-        timeout: 10000,   // fail if no update within 10s
-      }
-    );
+    // 🔄 Start watching location
+    const watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, {
+      enableHighAccuracy: true,
+      maximumAge: 5000,
+      timeout: 10000,
+    });
 
-    // 🧹 Clean up on unmount or salesman change
+    // 🧹 Cleanup
     return () => {
       if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);
       }
+      handleSuccess.cancel?.(); // cancel throttled calls
     };
   }, [dispatch, salesmanId]);
 };

@@ -20,6 +20,20 @@ export const fetchUsers = createAsyncThunk(
   }
 );
 
+// Fetch single user detail
+export const fetchUserById = createAsyncThunk(
+  "users/fetchUserById",
+  async (id, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`auth/api/user_detail/${id}/`);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message);
+    }
+  }
+);
+
+
 // Add user
 export const addUser = createAsyncThunk(
   "users/addUser",
@@ -67,6 +81,7 @@ const usersSlice = createSlice({
     loading: false,
     adding: false,
     error: null,
+    selectedUser: null,
     next: null,
     previous: null,
   },
@@ -115,6 +130,20 @@ const usersSlice = createSlice({
       .addCase(deleteUser.fulfilled, (state, action) => {
         state.users = state.users.filter((u) => u.id !== action.payload);
         state.count -= 1;
+      })
+
+      // Fetch user by ID
+      .addCase(fetchUserById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.selectedUser = action.payload;
+      })
+      .addCase(fetchUserById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error.message;
       });
   },
 });

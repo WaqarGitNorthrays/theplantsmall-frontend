@@ -14,6 +14,7 @@ import {
   CheckCircle,
   Package, ChevronDown,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import GpsCapture from "../GpsCapture.jsx";
 import api from "../../../utils/axiosInstance.js";
@@ -50,6 +51,7 @@ const OrderTaking = ({ shopId, onBack, onOrderSuccess }) => {
   });
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const navigate = useNavigate();
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -413,6 +415,8 @@ const handleQuantityChange = (quantity, type) => {
       setVoiceOrderParsed([]);
       setSelectedProduct(null);
       setSelectedVariant(null);
+
+      navigate("/order-receipt", { state: { order: response } });
       if (onOrderSuccess) onOrderSuccess();
     } catch (err) {
       console.error("Order submission failed:", err);
@@ -703,7 +707,7 @@ const handleQuantityChange = (quantity, type) => {
                     {orderItems.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 flex-col md:flex-row sm:flex-row"
                       >
                         <div>
                           <h5 className="font-medium text-gray-900">{item.name}</h5>

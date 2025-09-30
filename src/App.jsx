@@ -13,6 +13,7 @@ import DispatcherDashboard from "./components/Dispatcher/DispatcherDashboard";
 import DeliveryDashboard from "./components/DeliveryRider/DeliveryRiderDashboard";
 import AdminDashboard from "./components/Admin/AdminDashboard";
 import OrderHistory from "./components/Rider/Order/OrderHistory";
+import OrderReceipt from "./components/Rider/Order/OrderReceipt";
 
 // ✅ normalize roles for consistency
 const normalizeRole = (role) => {
@@ -139,6 +140,14 @@ const AppContent = () => {
           </PrivateRoute>
         }
       />
+
+      <Route path="/order-receipt" element={
+          <PrivateRoute allowedRole="salesman">
+          <OrderReceipt />
+          </PrivateRoute> 
+        } 
+      />
+
 
       {/* -------- CATCH-ALL -------- */}
       <Route path="*" element={<Navigate to="/" replace />} />
