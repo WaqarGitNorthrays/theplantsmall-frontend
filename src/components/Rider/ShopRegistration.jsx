@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { addShop, updateShop } from "../../store/slices/shopsSlice";
 import { Camera, Mic, Upload, X } from "lucide-react";
 import AlertMessage from "../common/AlertMessage.jsx";
@@ -7,6 +7,7 @@ import GpsCapture from "./GpsCapture.jsx";
 import VoiceNotesSection from "./VoiceNotesSection.jsx";
 import api from "../../utils/axiosInstance.js";
 import { toast } from "react-toastify";
+import { useNavigate, useParams } from "react-router-dom";
 
 async function computeHash(blob) {
   const buffer = await blob.arrayBuffer();
@@ -15,8 +16,30 @@ async function computeHash(blob) {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-const ShopRegistration = ({ shop = null, mode = "create", onSuccess }) => {
+const ShopRegistration = ({mode = "create", onSuccess}) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { shopId } = useParams();
+  const { nearbyShops } = useSelector((state) => state.shops);
+
+let shop = null;
+  if (mode === "edit") {
+    shop = nearbyShops.find((s) => s.id === parseInt(shopId));
+    if (!shop) {
+      return (
+        <div className="p-4 text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Shop Not Found</h2>
+          <p className="text-gray-600 mb-4">The shop you're trying to edit could not be found.</p>
+          <button
+            onClick={() => navigate("/salesman-dashboard/shops")}
+            className="bg-green-600 text-white px-6 py-2 rounded-xl hover:bg-green-700 transition-colors"
+          >
+            Back to Shops
+          </button>
+        </div>
+      );
+    }
+  }
 
   const [formData, setFormData] = useState({
     name: "",
@@ -574,7 +597,8 @@ try {
       { headers: { "Content-Type": "multipart/form-data" } }
     );
     dispatch(updateShop(res.data));
-    resetForm();
+    navigate("/salesman-dashboard/shops")
+    // resetForm();
   } else {
     res = await api.post(
       `plants-mall-shops/api/shops/create/`,
@@ -583,14 +607,11 @@ try {
     );
     dispatch(addShop(res.data));
     resetForm();
+    navigate("/salesman-dashboard/shops")
   }
 
-  setAlert({
-    message: `Shop ${mode === "edit" ? "updated" : "registered"} successfully!`,
-    type: "success",
-    visible: true,
-  });
-
+ toast.success(`Shop ${mode === "edit" ? "updated" : "registered"} successfully!`);
+  
   if (onSuccess) onSuccess();
 } catch (err) {
   console.error("Shop submission failed:", err);
@@ -625,11 +646,7 @@ try {
       errorMessages.push("Something went wrong.");
     }
 
-    setAlert({
-      message: errorMessages.join("\n"),
-      type: "error",
-      visible: true,
-    });
+toast.error(errorMessages.join("\n"));
   } else {
     setAlert({
       message: "Failed to submit shop. Please try again.",
@@ -663,201 +680,332 @@ try {
 
       <GpsCapture onLocationCaptured={handleLocationCaptured} initialGps={gps} />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Shop Name */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Shop Name</label>
-          <div className="flex gap-2 items-center">
-            <input type="text" name="name" value={formData.name} onChange={handleChange} required className="flex-1 min-w-0 px-4 py-3 border rounded-lg" placeholder="Enter shop name" />
-            <button
-              type="button"
-              onClick={() => handleVoiceInput("name", false)}
-              className={`flex-shrink-0 p-3 rounded-lg border transition-colors duration-200 ${recordingField === 'name' ? 'bg-green-600 border-green-700' : 'bg-gray-100 border-gray-300'} flex items-center justify-center`}
-              aria-label={recordingField === 'name' ? 'Stop Recording' : 'Start Recording'}
-            >
-              {recordingField === 'name' ? (
-                <svg className="h-5 w-5 text-white animate-pulse" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="8" />
-                </svg>
-              ) : (
-                <Mic className="h-5 w-5 text-gray-600" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Owner Name */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Owner Name</label>
-          <div className="flex gap-2 items-center">
-            <input type="text" name="ownerName" value={formData.ownerName} onChange={handleChange} required className="flex-1 min-w-0 px-4 py-3 border rounded-lg" placeholder="Enter owner name" />
-            <button
-              type="button"
-              onClick={() => handleVoiceInput("ownerName", false)}
-              className={`flex-shrink-0 p-3 rounded-lg border transition-colors duration-200 ${recordingField === 'ownerName' ? 'bg-green-600 border-green-700' : 'bg-gray-100 border-gray-300'} flex items-center justify-center`}
-              aria-label={recordingField === 'ownerName' ? 'Stop Recording' : 'Start Recording'}
-            >
-              {recordingField === 'ownerName' ? (
-                <svg className="h-5 w-5 text-white animate-pulse" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="8" />
-                </svg>
-              ) : (
-                <Mic className="h-5 w-5 text-gray-600" />
-              )}
-            </button>
-          </div>
-        </div>
-
-
-        {/* Owner Phone */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Owner Phone</label>
-          <div className="flex gap-2 items-center">
-            <input
-              type="tel"
-              name="ownerPhone"
-              value={formData.ownerPhone}
-              onChange={(e) => {
-                // Keep only digits
-                const digitsOnly = e.target.value.replace(/\D/g, "");
-                handleChange({ target: { name: "ownerPhone", value: digitsOnly } });
-                setPhoneError(""); // clear error
-              }}
-              required
-              className="flex-1 min-w-0 px-4 py-3 border rounded-lg"
-              placeholder="Enter phone number"
-            />
-
-            <button
-              type="button"
-              onClick={() => handleVoiceInput("ownerPhone", true)}
-              className={`flex-shrink-0 p-3 rounded-lg border transition-colors duration-200 ${
-                recordingField === "ownerPhone"
-                  ? "bg-green-600 border-green-700"
-                  : "bg-gray-100 border-gray-300"
-              } flex items-center justify-center`}
-              aria-label={recordingField === "ownerPhone" ? "Stop Recording" : "Start Recording"}
-            >
-              {recordingField === "ownerPhone" ? (
-                <svg className="h-5 w-5 text-white animate-pulse" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="8" />
-                </svg>
-              ) : (
-                <Mic className="h-5 w-5 text-gray-600" />
-              )}
-            </button>
-          </div>
-
-          {/* Error message */}
-          {phoneError && <p className="text-red-500 text-sm mt-1">{phoneError}</p>}
-        </div>
-
-
-
-                  {/* ✅ WhatsApp checkbox */}
-        <div className="mt-2 flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="isWhatsapp"
-            checked={formData.is_whatsapp}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, is_whatsapp: e.target.checked }))
-            }
-            className="h-4 w-4"
-          />
-          <label htmlFor="isWhatsapp" className="text-sm">
-            Is your WhatsApp on this number?
-          </label>
-        </div>
-
-        {/* Front Image */}
-        <div className="shadow-sm border p-3 rounded-lg">
-          <label className="block text-sm font-medium mb-2">Front Image of Shop</label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input id="frontImageUpload" type="file" accept="image/*" onChange={handleFrontImageUpload} className="hidden" />
-            <input id="frontImageCapture" type="file" accept="image/*" capture="environment" onChange={handleFrontImageUpload} className="hidden" />
-            <label htmlFor="frontImageUpload" className="flex items-center justify-center flex-1 px-4 py-3 border rounded-lg cursor-pointer">
-              <Upload className="h-5 w-5 mr-2" /> Upload
-            </label>
-            <label htmlFor="frontImageCapture" className="flex items-center justify-center flex-1 px-4 py-3 border rounded-lg cursor-pointer">
-              <Camera className="h-5 w-5 mr-2" /> Capture
-            </label>
-          </div>
-          {formData.frontImagePreview && <img src={formData.frontImagePreview} alt="Preview" className="h-40 w-auto mt-3 rounded-lg border mx-auto" />}
-        </div>
-
-        {/* Inside Images */}
-        <div className="shadow-sm border p-3 rounded-lg">
-          <label className="block text-sm font-medium mb-2">Inside Shop Images</label>
-          <input id="insideImagesUpload" type="file" accept="image/*" multiple onChange={handleInsideImagesUpload} className="hidden" />
-          <label htmlFor="insideImagesUpload" className="flex items-center justify-center px-4 py-3 border rounded-lg cursor-pointer mb-2">
-            <Upload className="h-5 w-5 mr-2" /> Upload
-          </label>
-          <input id="insideImageCapture" type="file" accept="image/*" capture="environment" onChange={handleInsideImageCapture} className="hidden" />
-          <label htmlFor="insideImageCapture" className="flex items-center justify-center px-4 py-3 border rounded-lg cursor-pointer">
-            <Camera className="h-5 w-5 mr-2" /> Capture
-          </label>
-
-          {allInsideImages.length > 0 && (
-            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {allInsideImages.map((image) => (
-                <div key={image.id} className="relative">
-                  <img src={image.url} alt={`Inside ${image.id}`} className="h-32 w-full object-cover rounded-lg border" />
-                  <button type="button" onClick={() => removeInsideImage(image)} className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full flex items-center justify-center h-6 w-6">
-                    <X size={16} />
+     <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Basic Information Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden">
+            <div className="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                Basic Information
+              </h3>
+            </div>
+            
+            <div className="p-4 sm:p-5 space-y-4">
+              {/* Shop Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Shop Name <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    className="flex-1 min-w-0 px-4 py-3 text-sm bg-gray-50 border border-gray-200 
+                             rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 
+                             focus:border-green-500 focus:bg-white transition-all"
+                    placeholder="Enter shop name"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleVoiceInput("name", false)}
+                    className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                      recordingField === 'name' 
+                        ? 'bg-red-500 shadow-lg shadow-red-500/50' 
+                        : 'bg-gray-100 hover:bg-gray-200'
+                    }`}
+                  >
+                    {recordingField === 'name' ? (
+                      <div className="w-4 h-4 bg-white rounded-full animate-pulse"></div>
+                    ) : (
+                      <Mic className="h-5 w-5 text-gray-600" />
+                    )}
                   </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
 
-        {/* Competitor Images */}
-        <div className=" shadow-sm border p-3 rounded-lg">
-          <label className="block text-sm font-medium mb-2">Competitor Images</label>
-          <input id="competitorImagesUpload" type="file" accept="image/*" multiple onChange={handleCompetitorImagesUpload} className="hidden" />
-          <label htmlFor="competitorImagesUpload" className="flex items-center justify-center px-4 py-3 border rounded-lg cursor-pointer mb-2">
-            <Upload className="h-5 w-5 mr-2" /> Upload
-          </label>
-          <input id="competitorImageCapture" type="file" accept="image/*" capture="environment" onChange={handleCompetitorImageCapture} className="hidden" />
-          <label htmlFor="competitorImageCapture" className="flex items-center justify-center px-4 py-3 border rounded-lg cursor-pointer">
-            <Camera className="h-5 w-5 mr-2" /> Capture
-          </label>
-
-          {allCompetitorImages.length > 0 && (
-            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {allCompetitorImages.map((image) => (
-                <div key={image.id} className="relative">
-                  <img src={image.url} alt={`Competitor ${image.id}`} className="h-32 w-full object-cover rounded-lg border" />
-                  <button type="button" onClick={() => removeCompetitorImage(image)} className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full flex items-center justify-center h-6 w-6">
-                    <X size={16} />
+              {/* Owner Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner Name <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="ownerName"
+                    value={formData.ownerName}
+                    onChange={handleChange}
+                    required
+                    className="flex-1 min-w-0 px-4 py-3 text-sm bg-gray-50 border border-gray-200 
+                             rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 
+                             focus:border-green-500 focus:bg-white transition-all"
+                    placeholder="Enter owner name"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleVoiceInput("ownerName", false)}
+                    className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                      recordingField === 'ownerName' 
+                        ? 'bg-red-500 shadow-lg shadow-red-500/50' 
+                        : 'bg-gray-100 hover:bg-gray-200'
+                    }`}
+                  >
+                    {recordingField === 'ownerName' ? (
+                      <div className="w-4 h-4 bg-white rounded-full animate-pulse"></div>
+                    ) : (
+                      <Mic className="h-5 w-5 text-gray-600" />
+                    )}
                   </button>
                 </div>
-              ))}
+              </div>
+
+              {/* Owner Phone */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Owner Phone <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="tel"
+                    name="ownerPhone"
+                    value={formData.ownerPhone}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/\D/g, "");
+                      handleChange({ target: { name: "ownerPhone", value: digitsOnly } });
+                      setPhoneError("");
+                    }}
+                    required
+                    className="flex-1 min-w-0 px-4 py-3 text-sm bg-gray-50 border border-gray-200 
+                             rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 
+                             focus:border-green-500 focus:bg-white transition-all"
+                    placeholder="Phone Number"
+                    maxLength="11"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleVoiceInput("ownerPhone", true)}
+                    className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                      recordingField === 'ownerPhone' 
+                        ? 'bg-red-500 shadow-lg shadow-red-500/50' 
+                        : 'bg-gray-100 hover:bg-gray-200'
+                    }`}
+                  >
+                    {recordingField === 'ownerPhone' ? (
+                      <div className="w-4 h-4 bg-white rounded-full animate-pulse"></div>
+                    ) : (
+                      <Mic className="h-5 w-5 text-gray-600" />
+                    )}
+                  </button>
+                </div>
+                {phoneError && (
+                  <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                    <span className="inline-block w-1 h-1 bg-red-500 rounded-full"></span>
+                    {phoneError}
+                  </p>
+                )}
+                
+                {/* WhatsApp Checkbox */}
+                <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_whatsapp}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, is_whatsapp: e.target.checked }))}
+                    className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500/20"
+                  />
+                  <span className="text-sm text-gray-700">WhatsApp available on this number</span>
+                </label>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        <VoiceNotesSection voiceNotes={formData.voiceNotes} setFormData={setFormData} initialVoiceNotes={formData.existingVoiceNotes} onDeleteExisting={handleDeleteExistingVoiceNote} />
+          {/* Front Image Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden">
+            <div className="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-sky-50">
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                Shop Front Image
+              </h3>
+            </div>
+            
+            <div className="p-4 sm:p-5">
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <input id="frontImageUpload" type="file" accept="image/*" onChange={handleFrontImageUpload} className="hidden" />
+                <input id="frontImageCapture" type="file" accept="image/*" capture="environment" onChange={handleFrontImageUpload} className="hidden" />
+                
+                <label
+                  htmlFor="frontImageUpload"
+                  className="flex flex-col items-center justify-center py-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <Upload className="h-6 w-6 text-gray-400 mb-1" />
+                  <span className="text-xs font-medium text-gray-600">Upload</span>
+                </label>
+                
+                <label
+                  htmlFor="frontImageCapture"
+                  className="flex flex-col items-center justify-center py-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <Camera className="h-6 w-6 text-gray-400 mb-1" />
+                  <span className="text-xs font-medium text-gray-600">Capture</span>
+                </label>
+              </div>
+              
+              {formData.frontImagePreview && (
+                <div className="relative rounded-xl overflow-hidden border-2 border-gray-200">
+                  <img
+                    src={formData.frontImagePreview}
+                    alt="Shop front"
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <span className="px-2 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
+                      Selected
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
-        {/* Submit */}
-        <div className="pt-4">
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-green-600 text-white font-semibold py-3 rounded-xl hover:bg-green-700 disabled:opacity-70"
-          >
-            {loading
-              ? mode === "edit"
-                ? "Updating..."
-                : "Registering..."
-              : mode === "edit"
-              ? "Update Shop"
-              : "Register Shop"}
-          </button>
-        </div>
+          {/* Inside Images Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden">
+            <div className="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50">
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                Inside Shop Images
+              </h3>
+            </div>
+            
+            <div className="p-4 sm:p-5">
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <input id="insideImagesUpload" type="file" accept="image/*" multiple onChange={handleInsideImagesUpload} className="hidden" />
+                <input id="insideImageCapture" type="file" accept="image/*" capture="environment" onChange={handleInsideImageCapture} className="hidden" />
+                
+                <label
+                  htmlFor="insideImagesUpload"
+                  className="flex flex-col items-center justify-center py-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <Upload className="h-6 w-6 text-gray-400 mb-1" />
+                  <span className="text-xs font-medium text-gray-600">Upload</span>
+                </label>
+                
+                <label
+                  htmlFor="insideImageCapture"
+                  className="flex flex-col items-center justify-center py-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <Camera className="h-6 w-6 text-gray-400 mb-1" />
+                  <span className="text-xs font-medium text-gray-600">Capture</span>
+                </label>
+              </div>
 
-      </form>
+              {allInsideImages.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {allInsideImages.map((image) => (
+                    <div key={image.id} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-gray-200">
+                      <img
+                        src={image.url}
+                        alt="Inside shop"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeInsideImage(image)}
+                        className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Competitor Images Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden">
+            <div className="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-amber-50">
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                Competitor Images
+              </h3>
+            </div>
+            
+            <div className="p-4 sm:p-5">
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <input id="competitorImagesUpload" type="file" accept="image/*" multiple onChange={handleCompetitorImagesUpload} className="hidden" />
+                <input id="competitorImageCapture" type="file" accept="image/*" capture="environment" onChange={handleCompetitorImageCapture} className="hidden" />
+                
+                <label
+                  htmlFor="competitorImagesUpload"
+                  className="flex flex-col items-center justify-center py-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <Upload className="h-6 w-6 text-gray-400 mb-1" />
+                  <span className="text-xs font-medium text-gray-600">Upload</span>
+                </label>
+                
+                <label
+                  htmlFor="competitorImageCapture"
+                  className="flex flex-col items-center justify-center py-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <Camera className="h-6 w-6 text-gray-400 mb-1" />
+                  <span className="text-xs font-medium text-gray-600">Capture</span>
+                </label>
+              </div>
+
+              {allCompetitorImages.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {allCompetitorImages.map((image) => (
+                    <div key={image.id} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-gray-200">
+                      <img
+                        src={image.url}
+                        alt="Competitor"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeCompetitorImage(image)}
+                        className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Voice Notes Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden">
+            <div className="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
+                Voice Notes (Optional)
+              </h3>
+            </div>
+            
+            <div className="p-4 sm:p-5">
+              <VoiceNotesSection
+                voiceNotes={formData.voiceNotes}
+                setFormData={setFormData}
+                initialVoiceNotes={formData.existingVoiceNotes}
+                onDeleteExisting={handleDeleteExistingVoiceNote}
+              />
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="sticky bottom-0 bg-white rounded-2xl shadow-lg border border-gray-200/60 p-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 
+                       rounded-xl font-bold text-base hover:from-green-700 hover:to-emerald-700 
+                       disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed
+                       transition-all shadow-lg hover:shadow-xl active:scale-[0.98]"
+            >
+              {loading
+                ? mode === "edit" ? "Updating Shop..." : "Registering Shop..."
+                : mode === "edit" ? "Update Shop" : "Register Shop"}
+            </button>
+          </div>
+        </form>
     </div>
   );
 };

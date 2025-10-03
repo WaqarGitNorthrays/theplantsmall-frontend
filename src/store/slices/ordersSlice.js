@@ -130,6 +130,7 @@ const ordersSlice = createSlice({
     updating: false,
     page: 1,
     pageSize: 10,
+    lastOrder: null,
   },
 
   reducers: {
@@ -171,6 +172,9 @@ const ordersSlice = createSlice({
     setPage: (state, action) => {
       state.page = action.payload;
     },
+     setLastOrder: (state, action) => {
+      state.lastOrder = action.payload;
+    },
   },
 
   extraReducers: (builder) => {
@@ -180,10 +184,12 @@ const ordersSlice = createSlice({
         s.loading = true;
         s.error = null;
       })
-      .addCase(submitorder.fulfilled, (s, a) => {
-        s.loading = false;
-        s.orders.unshift(a.payload); // newest first
-      })
+    .addCase(submitorder.fulfilled, (s, a) => {
+      s.loading = false;
+      s.orders.unshift(a.payload); // newest first
+      s.lastOrder = a.payload;     // ✅ store latest order
+    })
+
       .addCase(submitorder.rejected, (s, a) => {
         s.loading = false;
         s.error = a.payload;
@@ -199,14 +205,15 @@ const ordersSlice = createSlice({
         const payload = a.payload;
 
         if (Array.isArray(payload)) {
-          // If API just returns an array
-          s.orders = s.page > 1 ? [...s.orders, ...payload] : payload;
+          // Fallback for non-paginated array response (rarely hit)
+          s.orders = payload; // Always replace
           s.count = payload.length;
           s.next = null;
           s.previous = null;
         } else {
+          // Standard paginated response
           const newOrders = payload?.results || [];
-          s.orders = s.page > 1 ? [...s.orders, ...newOrders] : newOrders;
+          s.orders = newOrders; // KEY FIX: Always replace, no append
           s.count = payload?.count ?? 0;
           s.next = payload?.next ?? null;
           s.previous = payload?.previous ?? null;
@@ -269,6 +276,7 @@ const ordersSlice = createSlice({
         s.updating = false;
         s.error = a.payload;
       });
+
   },
 });
 
@@ -278,6 +286,7 @@ export const {
   markOrderReady,
   addVoiceNote,
   setPage,
+  setLastOrder,
 } = ordersSlice.actions;
 
 export default ordersSlice.reducer;

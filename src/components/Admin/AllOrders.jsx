@@ -11,14 +11,14 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
-  Tag,
   User,
   Store,
-  CreditCard,
   Hash,
   Filter,
   Calendar,
-  Package
+  Package,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import OrderDetailModal from "./OrderDetailModal.jsx";
 import StatusModal from "./StatusModal";

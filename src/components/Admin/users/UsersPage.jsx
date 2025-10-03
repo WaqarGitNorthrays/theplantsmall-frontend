@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchUsers } from "../../../store/slices/usersSlice";
+import { fetchUsers, updateUser } from "../../../store/slices/usersSlice";
 import UsersTable from "./UsersTable";
-// import User from "./UserFormPage ";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const UsersPage = () => {
   const dispatch = useDispatch();
@@ -15,7 +15,7 @@ const UsersPage = () => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
-    const handleNextPage = () => {
+  const handleNextPage = () => {
     if (next) {
       dispatch(fetchUsers(next));
     }
@@ -27,18 +27,38 @@ const UsersPage = () => {
     }
   };
 
+  // 🔹 Add this function here
+const handleToggleActive = async (user) => {
+  try {
+    const newStatus = !user.is_active;
+
+    await dispatch(
+      updateUser({
+        id: user.id,
+        updates: { is_active: newStatus },
+      })
+    ).unwrap();
+
+    toast.success(
+      `User ${newStatus ? "activated" : "deactivated"} successfully!`
+    );
+  } catch (err) {
+    toast.error(err?.message || "Failed to update user status");
+  }
+};
+
+
   return (
-    <div className="min-h-screen" >
+    <div className="min-h-screen">
       <div className="bg-white p-3 md:p-6 sm:p-6 rounded-xl shadow-lg border border-gray-100">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
           <h1 className="text-3xl font-extrabold text-gray-900 mb-4 sm:mb-0">
             All Users
           </h1>
           <button
-          onClick={() => navigate("../users/new")}
+            onClick={() => navigate("../users/new")}
             className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-600 transition-all duration-300 transform hover:scale-105 shadow-md"
-        
-          > 
+          >
             <Plus className="w-4 h-4" />
             Add User
           </button>
@@ -60,16 +80,17 @@ const UsersPage = () => {
             <div className="overflow-x-auto custom-scrollbar w-full">
               <UsersTable
                 users={users}
-                 nextPageUrl={next}
-        prevPageUrl={previous}
-        onNextPage={handleNextPage}
-        onPreviousPage={handlePreviousPage}
+                nextPageUrl={next}
+                prevPageUrl={previous}
+                onNextPage={handleNextPage}
+                onPreviousPage={handlePreviousPage}
+                onDeleteConfirm={handleToggleActive}
+                // onDeleteConfirm={handleToggleUserStatus}
               />
             </div>
           </div>
         )}
       </div>
-
     </div>
   );
 };

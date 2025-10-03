@@ -3,12 +3,14 @@ import React, { useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
 import Layout from "../../Layout/Layout";
+import { useSelector } from "react-redux";
 
 const OrderReceipt = () => {
   const { state } = useLocation();
-  const navigate = useNavigate();
   const receiptRef = useRef(null);
-  const order = state?.order;
+  const navigate = useNavigate();
+  const reduxOrder = useSelector((s) => s.orders.lastOrder);
+  const order = state?.order || reduxOrder;
 
   if (!order) {
     return (
@@ -62,7 +64,6 @@ const OrderReceipt = () => {
   const looseCount = order.items.filter((i) => i.loose !== null).length;
 
   return (
-    <Layout>
       <div className="gradient-bg min-h-screen py-6 px-2 sm:px-4">
         <div className="max-w-lg w-full mx-auto">
           {/* Success Header */}
@@ -227,7 +228,7 @@ const OrderReceipt = () => {
           {/* Action Buttons */}
           <div className="mt-6 space-y-3 animate-fade-in-up animate-delay-3">
             <button
-              onClick={() => navigate("/")}
+               onClick={() => navigate(`/salesman-dashboard/shops/${order.shop}/order-taking`)}
               className="w-full bg-white text-blue-600 font-semibold py-3 sm:py-4 px-4 sm:px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center text-sm sm:text-base"
             >
               <svg
@@ -278,7 +279,6 @@ const OrderReceipt = () => {
           </div>
         </div>
       </div>
-    </Layout>
   );
 };
 

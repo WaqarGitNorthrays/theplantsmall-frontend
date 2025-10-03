@@ -94,7 +94,7 @@ const Layout = ({ children, title }) => {
       </header>
       
       {/* Main Content */}
-      <main className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-4 sm:py-6 lg:py-8">
+      <main className="w-full max-w-[1920px] mx-auto sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-4 sm:py-6 lg:py-8">
         <div className="w-full">
           {children}
         </div>

@@ -13,6 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import ConfirmDialog from "../../common/ConfirmDialog";
+
 
 // The Pagination component is now part of this file for simplicity,
 // but it's good practice to move it to its own file later.
@@ -47,21 +49,38 @@ const roleLabels = {
   delivery_rider: "Delivery Rider",
 };
 
-const UsersTable = ({
-  users,
-  onEdit,
-  onDeleteConfirm,
-  nextPageUrl,
-  prevPageUrl,
-  onNextPage,
-  onPreviousPage,
-}) => {
+  const UsersTable = ({
+    users,
+    onEdit,
+    onDeleteConfirm,
+    nextPageUrl,
+    prevPageUrl,
+    onNextPage,
+    onPreviousPage,
+  }) => {
+
   const usersArray = Array.isArray(users) ? users : [];
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   const navigate = useNavigate();
 
   const handleDropdownToggle = (id) => {
     setOpenDropdownId(openDropdownId === id ? null : id);
+  };
+
+    const handleActionClick = (user) => {
+    setSelectedUser(user);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirm = () => {
+    if (selectedUser) {
+      // onDeleteConfirm({ ...selectedUser, is_active: !selectedUser.is_active });
+          onDeleteConfirm(selectedUser);
+    }
+    setConfirmOpen(false);
+    setSelectedUser(null);
   };
 
   useEffect(() => {
@@ -221,15 +240,21 @@ const UsersTable = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              onDeleteConfirm(user);
+                              const action = user.is_active ? "deactivate" : "activate";
+                              handleActionClick(user);
+
                               setOpenDropdownId(null);
                             }}
                             className="flex items-center px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100"
                             role="menuitem"
                           >
-                            <Trash2 size={16} className="mr-2 text-red-500" />
-                            InActive
+                            <Trash2
+                              size={16}
+                              className={`mr-2 ${user.is_active ? "text-red-500" : "text-emerald-500"}`}
+                            />
+                            {user.is_active ? "Inactive" : "Active"}
                           </button>
+
                         </div>
                       </div>
                     )}
@@ -320,16 +345,23 @@ const UsersTable = ({
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <button
                 className="flex-1 flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 py-3 rounded-md font-medium hover:bg-emerald-100 transition-colors"
-                onClick={() => onEdit(user)}
+                onClick={() =>   navigate(`../users/edit/${user.id}`)}
               >
                 <Edit size={16} /> Edit
               </button>
               <button
-                className="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-600 py-3 rounded-md font-medium hover:bg-red-100 transition-colors"
-                onClick={() => onDeleteConfirm(user)}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-md font-medium transition-colors ${
+                  user.is_active
+                    ? "bg-red-50 text-red-600 hover:bg-red-100"
+                    : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                }`}
+                onClick={() => {
+                    handleActionClick(user);
+                }}
               >
-                InActive
+                {user.is_active ? "Inactive" : "Activate"}
               </button>
+
             </div>
           </div>
         ))}
@@ -341,6 +373,13 @@ const UsersTable = ({
         onNext={onNextPage}
         onPrevious={onPreviousPage}
       />
+      <ConfirmDialog
+  open={confirmOpen}
+  title="Confirm Action"
+  message={`Are you sure you want to ${selectedUser?.is_active ? "deactivate" : "activate"} this user?`}
+  onConfirm={handleConfirm}
+  onCancel={() => setConfirmOpen(false)}
+/>
     </>
   );
 };

@@ -14,15 +14,17 @@ import {
   CheckCircle,
   Package, ChevronDown,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import GpsCapture from "../GpsCapture.jsx";
 import api from "../../../utils/axiosInstance.js";
 
-const OrderTaking = ({ shopId, onBack, onOrderSuccess }) => {
+const OrderTaking = ({onOrderSuccess }) => {
   const dispatch = useDispatch();
-  const shops = useSelector((state) => state.shops.shops);
+    const { shopId } = useParams();   
+  const { shops, nearbyShops } = useSelector((state) => state.shops);
   const { products, loading: productsLoading, error: productsError } = useSelector((state) => state.products);
+    // const basePath = "/salesman-dashboard";
 
   useEffect(() => {
     if (products.length === 0) {
@@ -62,8 +64,19 @@ const OrderTaking = ({ shopId, onBack, onOrderSuccess }) => {
   const [gpsData, setGpsData] = useState(null);
   const user = useSelector((state) => state.auth.user);
   const order_taker = user?.id;
-  const { nearbyShops } = useSelector((state) => state.shops);
-  const selectedShop = nearbyShops.find((shop) => String(shop.id) === String(shopId));
+  // const { nearbyShops } = useSelector((state) => state.shops);
+ const selectedShop =
+  shops.find((s) => String(s.id) === String(shopId)) ||
+  nearbyShops.find((s) => String(s.id) === String(shopId));
+
+  if (!selectedShop) {
+  return (
+    <div className="p-6 text-center text-red-600 font-medium">
+      Shop not found. Please go back and select again.
+    </div>
+  );
+}
+
 
   const handleLocationCaptured = (loc) => {
     setGpsData(loc);
@@ -416,8 +429,11 @@ const handleQuantityChange = (quantity, type) => {
       setSelectedProduct(null);
       setSelectedVariant(null);
 
-      navigate("/order-receipt", { state: { order: response } });
+      console.log("Submit order response:", response);   // add this
+      navigate("/salesman-dashboard/order-receipt", { state: { order: response } });
+
       if (onOrderSuccess) onOrderSuccess();
+
     } catch (err) {
       console.error("Order submission failed:", err);
       let message = "Failed to submit order. Please try again.";
@@ -537,7 +553,7 @@ const handleQuantityChange = (quantity, type) => {
                 <div className="mt-2 text-xs text-gray-500">
                   {selectedShop.owner_name && (
                     <span>
-                      Owner: <span className="font-medium">{selectedShop.owner_name}</span>
+                      Owner: <span className="font-medium">{selectedShop.owner_name}</span> 
                     </span>
                   )}
                   {selectedShop.owner_phone && (

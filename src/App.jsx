@@ -89,7 +89,7 @@ const AppContent = () => {
 
       {/* -------- PROTECTED ROUTES -------- */}
       <Route
-        path="/salesman-dashboard"
+        path="/salesman-dashboard/*"
         element={
           <PrivateRoute allowedRole="salesman">
             <RiderDashboard />
@@ -132,21 +132,21 @@ const AppContent = () => {
       />
 
       {/* -------- NESTED PROTECTED ROUTES -------- */}
-      <Route
+      {/* <Route
         path="/order-history/:shopId"
         element={
           <PrivateRoute allowedRole="salesman">
             <OrderHistory />
           </PrivateRoute>
         }
-      />
+      /> */}
 
-      <Route path="/order-receipt" element={
+      {/* <Route path="/order-receipt" element={
           <PrivateRoute allowedRole="salesman">
           <OrderReceipt />
           </PrivateRoute> 
         } 
-      />
+      /> */}
 
 
       {/* -------- CATCH-ALL -------- */}
