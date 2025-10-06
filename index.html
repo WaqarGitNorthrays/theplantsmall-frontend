@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Plants Mall</title>
 
-    <!-- Fonts -->
+    <!-- ✅ Font Loading Optimization -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,17 +14,36 @@
       rel="stylesheet"
     />
 
-    <!-- ✅ PWA manifest -->
+    <!-- ✅ PWA Manifest -->
     <link rel="manifest" href="/manifest.webmanifest" />
 
-    <!-- ✅ PWA theme color -->
-    <meta name="theme-color" content="#ffffff" />
-
-    <!-- ✅ Apple PWA support -->
+    <!-- ✅ Icons -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="icon" sizes="192x192" href="/pwa-192x192.png" />
+    <link rel="icon" sizes="512x512" href="/pwa-512x512.png" />
+
+    <!-- ✅ Progressive Web App Capabilities -->
+    <meta name="mobile-web-app-capable" content="yes" /> <!-- Modern -->
+    <meta name="apple-mobile-web-app-capable" content="yes" /> <!-- Legacy -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="The Plants Mall" />
+
+    <!-- ✅ Theme Colors (Light / Dark Mode Support) -->
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)" />
+
+    <!-- ✅ Optional: PWA Description -->
+    <meta
+      name="description"
+      content="Shop your favorite plants and garden essentials with The Plants Mall – a modern, installable PWA experience."
+    />
+
+    <!-- ✅ Optional: Open Graph / SEO -->
+    <meta property="og:title" content="The Plants Mall" />
+    <meta property="og:description" content="Shop your favorite plants online with ease." />
+    <meta property="og:image" content="/pwa-512x512.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://theplantsmall.com" />
   </head>
   <body>
     <div id="root"></div>
