@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const adminApi = axios.create({
-  baseURL: "https://the-plants-mall-backend.onrender.com/",
+  baseURL: process.env.PUBLIC_API_URL,
   headers: {
     "Content-Type": "application/json",
   },

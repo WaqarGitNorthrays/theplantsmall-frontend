@@ -9,7 +9,7 @@ export const injectStore = (_store) => {
 
 
 const api = axios.create({
-  baseURL: "https://app.theplantsmall.com/",
+  baseURL: process.env.PUBLIC_API_URL,
   headers: {
     // "Content-Type": "application/json",
   },
