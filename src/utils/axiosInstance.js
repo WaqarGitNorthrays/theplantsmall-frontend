@@ -9,7 +9,7 @@ export const injectStore = (_store) => {
 
 
 const api = axios.create({
-  baseURL: "https://the-plants-mall-backend.onrender.com/",
+  baseURL: "https://app.theplantsmall.com/",
   headers: {
     // "Content-Type": "application/json",
   },
