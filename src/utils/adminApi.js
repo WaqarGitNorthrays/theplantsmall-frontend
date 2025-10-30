@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const adminApi = axios.create({
-  baseURL: process.env.PUBLIC_API_URL,
+  baseURL: "https://app.theplantsmall.com/",
   headers: {
     "Content-Type": "application/json",
   },
